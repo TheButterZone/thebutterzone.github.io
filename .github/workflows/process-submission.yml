@@ -36,24 +36,13 @@ jobs:
           ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
           BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
           REMOVE_USERNAME: ${{ github.event.issue.body }}
-
-      - name: Commit and Push Changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add data.json
-
-          if git diff --staged --quiet; then
-            echo "No changes"
-            exit 0
-          fi
-
-          git commit -m "Update website directory"
-          git push origin HEAD:${{ github.ref_name }}
-
+      
+      - name: Check if changes occurred
+        id: changes
+        run: echo "changed=$(cat .changed)" >> $GITHUB_OUTPUT
+      
       - name: Clean Up and Close Issue
-        if: success()
+        if: steps.changes.outputs.changed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
