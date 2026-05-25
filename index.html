@@ -93,6 +93,15 @@
 </head>
 <body>
 
+<script>
+window.APP_CONFIG = {
+  GITHUB_USERNAME: 'TheButterZone',
+  REPO_NAME: 'thebutterzone.github.io',
+  BASE_ISSUES_URL:
+    'https://github.com/TheButterZone/thebutterzone.github.io/issues/new'
+};
+</script>
+
     <!-- 1. SUBMISSION FORM -->
 <div class="form-container">
     <h2>Submit Your Profile Details</h2>
@@ -133,14 +142,10 @@ document.getElementById("prefillForm").addEventListener("submit", function (e) {
     const btc = document.getElementById("web_btc").value.trim();
 
     // Build the clean submission path using your verified string concatenation logic
-    const url = 
-        "https://github.com" 
-        + "/" + GITHUB_USERNAME 
-        + "/" + REPO_NAME 
-        + "/issues/new?template=submit-info.yml" +
-            "&username=" + encodeURIComponent(username) +
-            "&bitcoin=" + encodeURIComponent(btc);
-    
+    const url = `${window.APP_CONFIG.BASE_ISSUES_URL}?template=submit-info.yml`
+      + "&username=" + encodeURIComponent(username) 
+      + "&bitcoin=" + encodeURIComponent(btc);
+   
     window.open(url, "_blank", "noopener,noreferrer");
 });
 </script>
@@ -155,8 +160,7 @@ document.getElementById("prefillForm").addEventListener("submit", function (e) {
 
     <script>
         // --- CONFIGURATION ---
-const GITHUB_USERNAME = 'TheButterZone';
-const REPO_NAME = 'thebutterzone.github.io';
+const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
 
         // Pull the stored array database from data.json to populate the directory below
         fetch('./data.json')
@@ -187,11 +191,8 @@ const freecycleUrl =
   encodeURIComponent(username);
 
     // Build the clean removal path using your verified string concatenation logic
-    const removalUrl = "https://github.com" 
-        + "/" + GITHUB_USERNAME 
-        + "/" + REPO_NAME 
-        + "/issues/new?template=remove-info.yml&username=" 
-        + encodeURIComponent(username);
+    const url = `${window.APP_CONFIG.BASE_ISSUES_URL}?template=remove-info.yml`
+      + "&username=" + encodeURIComponent(username) 
 
     card.innerHTML = `
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
