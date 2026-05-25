@@ -94,21 +94,37 @@
 <body>
 
     <!-- 1. SUBMISSION FORM -->
-    <div class="form-container">
-        <h2>Submit Your Profile Details</h2>
-        <form id="prefillForm">
-            <div class="form-group">
-                <label for="web_url">Freecycle Member URL</label>
-                <input type="url" id="web_url" placeholder="https://www.freecycle.org/member/[yourusernamehere]" required>
-                <div class="form-help">Must end with your actual username.</div>
-            </div>
-            <div class="form-group">
-                <label for="web_btc">Bitcoin Address</label>
-                <input type="text" id="web_btc" placeholder="e.g., bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" required>
-            </div>
-            <button type="submit" class="submit-btn">🚀 Prepare Submission via GitHub</button>
-        </form>
-    </div>
+<div class="form-container">
+    <h2>Submit Your Profile Details</h2>
+    <form id="prefillForm">
+        <div class="form-group">
+            <label for="web_url">Freecycle Member URL</label>
+            <!-- Added a strict pattern attribute to match the exact URL prefix format -->
+            <input 
+                type="url" 
+                id="web_url" 
+                placeholder="https://freecycle.org" 
+                pattern="^https:\/\/www\.freecycle\.org\/member\/[a-zA-Z0-9_\-]+$"
+                title="Must match this format exactly: https://freecycle.org/member/[yourusernamehere]"
+                required
+            >
+            <div class="form-help">Must end with your exact username</div>
+        </div>
+        <div class="form-group">
+            <label for="web_btc">Bitcoin Address</label>
+            <!-- Added a strict pattern attribute checking for Legacy, SegWit, or Taproot structures -->
+            <input 
+                type="text" 
+                id="web_btc" 
+                placeholder="e.g., bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" 
+                pattern="^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-Z0-9]{25,39}|bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{39,59})$"
+                title="Please enter a valid Legacy (1...), Nested SegWit (3...), or Native SegWit (bc1...) Bitcoin address."
+                required
+            >
+        </div>
+        <button type="submit" class="submit-btn">🚀 Prepare Submission via GitHub</button>
+    </form>
+</div>
 
     <hr style="border: 0; border-top: 1px solid #d1d5da; margin: 40px 0;">
 
