@@ -3,7 +3,6 @@ description: Request the removal of your profile from our static website directo
 title: "[Removal Request]: BTC2Free"
 labels: ["pending-review"]
 body:
-body:
   - type: input
     id: username
     attributes:
