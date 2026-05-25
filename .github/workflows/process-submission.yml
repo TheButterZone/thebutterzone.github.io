@@ -28,24 +28,12 @@ jobs:
         with:
           template-path: .github/ISSUE_TEMPLATE/submit-info.yml
 
-      - name: Parse Removal Form
-        id: parse_remove
-        uses: stefanbuck/github-issue-parser@v3
-        with:
-          template-path: .github/ISSUE_TEMPLATE/remove-info.yml
-
-      - name: Ensure data.json exists
-        run: |
-          if [ ! -f data.json ]; then
-            echo "[]" > data.json
-          fi
-
       - name: Process Directory Changes
         run: node scripts/process-directory.js
         env:
           ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
           BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
-          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
+          REMOVE_USERNAME: ${{ github.event.issue.body }}
 
       - name: Commit and Push Changes
         run: |
@@ -55,36 +43,20 @@ jobs:
           git add data.json
 
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
             exit 0
           fi
 
           git commit -m "Update website directory"
           git push origin HEAD:${{ github.ref_name }}
 
-      - name: Clean Up and Close Issue
+      - name: Close Issue
         uses: actions/github-script@v6
         with:
           script: |
-            try {
-              await github.rest.issues.removeLabel({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: 'pending-review'
-              });
-            } catch (e) {}
-
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ Approved! The website directory has been updated.'
-            });
-
             await github.rest.issues.update({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: 'closed'
+              state: "closed"
             });
