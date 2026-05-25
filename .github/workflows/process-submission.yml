@@ -1,4 +1,4 @@
-name: Process Website Directory (With Approval)
+name: Process Website Directory
 
 on:
   issues:
@@ -48,44 +48,56 @@ jobs:
 
       - name: Process Directory Changes
         run: |
-          set -e
+          node -e "
+          const fs = require('fs');
 
-          URL=$(echo '${{ steps.parse_add.outputs.issueparser_website }}' | xargs)
-          BTC_ADDRESS=$(echo '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}' | xargs)
-          USERNAME=$(echo '${{ steps.parse_remove.outputs.issueparser_username }}' | xargs)
+          const addUrl = '${{ steps.parse_add.outputs.issueparser_website }}'.trim();
+          const btc = '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}'.trim();
+          const removeUser = '${{ steps.parse_remove.outputs.issueparser_username }}'.trim();
 
-          if [ -n "$BTC_ADDRESS" ]; then
-            echo "--- PROCESSING ADDITION ---"
+          let data = [];
 
-            jq --arg url "$URL" --arg btc "$BTC_ADDRESS" \
-              '. += [{"url": $url, "bitcoin": $btc}]' \
-              data.json > tmp.json
+          if (fs.existsSync('data.json')) {
+            try {
+              data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
+            } catch (e) {
+              data = [];
+            }
+          }
 
-            mv tmp.json data.json
+          if (btc) {
+            data.push({
+              url: addUrl,
+              bitcoin: btc
+            });
+          }
 
-          elif [ -n "$USERNAME" ]; then
-            echo "--- PROCESSING REMOVAL ---"
+          if (removeUser) {
+            data = data.filter(entry => entry.url !== removeUser);
+          }
 
-            jq --arg target "$USERNAME" \
-              'del(.[] | select(.url == $target))' \
-              data.json > tmp.json
-
-            mv tmp.json data.json
-          fi
+          fs.writeFileSync('data.json', JSON.stringify(data, null, 2));
+          console.log('Updated data.json');
+          "
 
       - name: Commit and Push Changes
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add data.json
 
-          git diff --cached --quiet || git commit -m "docs: modify website directory records via admin action"
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
 
-          git push
+          git commit -m "Update website directory"
+
+          git push origin HEAD:${{ github.ref_name }}
 
       - name: Clean Up and Close Issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v6
         with:
           script: |
             try {
@@ -101,7 +113,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "✅ Approved! The website directory has been updated."
+              body: '✅ Approved! The website directory has been updated.'
             });
 
             await github.rest.issues.update({
