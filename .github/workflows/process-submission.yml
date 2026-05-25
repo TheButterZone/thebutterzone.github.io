@@ -3,6 +3,10 @@ on:
   issues:
     types: [labeled]
 
+# Fix: Force the runner to use Node 24 to completely remove the deprecation warning
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   update-data:
     if: github.event.label.name == 'approved'
@@ -15,14 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Parse using the Submission Template
       - name: Parse Submission Form
         id: parse_add
         uses: stefanbuck/github-issue-parser@v3
         with:
           template-path: .github/ISSUE_TEMPLATE/submit-info.yml
 
-      # 2. Parse using the Removal Template
       - name: Parse Removal Form
         id: parse_remove
         uses: stefanbuck/github-issue-parser@v3
@@ -31,46 +33,41 @@ jobs:
 
       - name: Process Directory Changes
         run: |
-          # Initialize JSON data file if missing
+          set -e
+
+          # Extract and clean inputs
+          URL=$(echo '${{ steps.parse_add.outputs.issueparser_website }}' | tr -d '[:space:]')
+          BTC_ADDRESS=$(echo '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}' | tr -d '[:space:]')
+          BTC_CHECK=$(echo '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}' | tr -d '[:space:]')
+
           if [ ! -f data.json ]; then
             echo "[]" > data.json
           fi
 
-          # DUAL ROUTE LOGIC: Check if this is an Addition or a Removal
-          BTC_CHECK='${{ steps.parse_add.outputs.issueparser_bitcoin_address }}'
-
+          # Fix: Used standard string length test (-n) to avoid syntax crashes in Ubuntu Bash
           if [ -n "$BTC_CHECK" ]; then
             echo "--- PROCESSING ADDITION ---"
-            URL='${{ steps.parse_add.outputs.issueparser_website }}'
-            BTC_ADDRESS='${{ steps.parse_add.outputs.issueparser_bitcoin_address }}'
             
-            # Regex Verifications
             FREECYCLE_REGEX="^https:\/\/www\.freecycle\.org\/member\/[a-zA-Z0-9\+\-]+$"
             if [[ ! "$URL" =~ $FREECYCLE_REGEX ]]; then
-              echo "URL validation failed for: $URL"
               echo "ERROR_MSG=The Freecycle URL provided does not match the required format." >> $GITHUB_ENV
               exit 1
             fi
 
             BTC_REGEX="^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-Z0-9]{25,39}|bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{39,59})$"
-            if [[ ! $BTC_ADDRESS =~ $BTC_REGEX ]]; then
+            if [[ ! "$BTC_ADDRESS" =~ $BTC_REGEX ]]; then
               echo "ERROR_MSG=The Bitcoin address provided is invalid." >> $GITHUB_ENV
               exit 1
             fi
 
-            # Append the entry
             jq --arg url "$URL" --arg btc "$BTC_ADDRESS" \
               '. += [{"url": $url, "bitcoin": $btc}]' data.json > tmp.json && mv tmp.json data.json
 
           else
             echo "--- PROCESSING REMOVAL ---"
-            # 1. Parse the clean username input string
             USERNAME=$(echo '${{ steps.parse_remove.outputs.issueparser_username }}' | tr -d '[:space:]')
-            
-            # 2. Reconstruct the exact full URL that matches your data.json records
             TARGET_URL="https://freecycle.org"
             
-            # 3. Use jq to safely select everything EXCEPT the matching URL entry
             jq --arg target "$TARGET_URL" 'del(.[] | select(.url == $target))' data.json > tmp.json && mv tmp.json data.json
           fi
 
@@ -87,7 +84,7 @@ jobs:
                 name: 'approved'
               });
             } catch(e) {}
-            const errorMsg = process.env.ERROR_MSG || "An unknown validation error occurred.";
+            const errorMsg = process.env.ERROR_MSG || "An unknown validation error occurred inside the workflow processor script.";
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
