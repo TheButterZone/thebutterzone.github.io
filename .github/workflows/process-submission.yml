@@ -56,13 +56,21 @@ jobs:
           }
           "
 
+                  - name: DEBUG REMOVE INPUT
+          run: |
+            echo "RAW ISSUE BODY:"
+            echo "${{ github.event.issue.body }}"
+        
+            echo "PARSED REMOVE USERNAME:"
+            echo "${{ steps.parse_remove.outputs.issueparser_username }}"
+
       # ---------------- PROCESS ----------------
       - name: Process Directory Changes
         run: node scripts/process-directory.js
         env:
           ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
           BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
-          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
+          REMOVE_USERNAME: ${{ github.event.issue.body }}
 
       # ---------------- READ CHANGE FLAG ----------------
       - name: Read change state
