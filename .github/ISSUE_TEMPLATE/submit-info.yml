@@ -1,6 +1,6 @@
 name: "Submit Your Information"
 description: "Fill out this form with your Freecycle profile & Bitcoin address to be added to this website."
-title: "[Submission]: "
+title: "[Submission]: BTC2Free"
 labels: ["pending-review"] 
 body:
   - type: markdown
@@ -30,7 +30,7 @@ body:
   - type: checkboxes
     id: terms
     attributes:
-      label: "Code of Conduct"
+      label: "Privacy Policy"
       options:
-        - label: "I agree to publish this information publicly on the website."
+        - label: "I agree to publish this information publicly on the website & use the Remove My Entry button to request removal, if desired."
           required: true
