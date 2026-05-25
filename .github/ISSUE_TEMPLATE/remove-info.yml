@@ -1,5 +1,5 @@
 name: "Remove Your Information"
-description: "Request the removal of your profile from our static website directory."
+description: "Request the removal of your profile from our static website directory using your username."
 title: "[Removal Request]: BTC2Free"
 labels: ["pending-review"]
 body:
@@ -10,10 +10,10 @@ body:
         An admin will review this request. Once approved, your data will be permanently scrubbed from the live database.
 
   - type: input
-    id: website
+    id: username
     attributes:
-      label: "Freecycle Member URL to Remove"
-      description: "This must match the exact URL currently listed on the website directory."
+      label: "Freecycle Username to Remove"
+      description: "Enter just your username (letters, numbers, + and - symbols allowed)."
     validations:
       required: true
 
