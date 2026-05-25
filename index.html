@@ -94,12 +94,11 @@
 <body>
 
 <script>
-window.APP_CONFIG = {
+window.APP_CONFIG = Object.freeze({
   GITHUB_USERNAME: 'TheButterZone',
   REPO_NAME: 'thebutterzone.github.io',
-  BASE_ISSUES_URL:
-    'https://github.com/TheButterZone/thebutterzone.github.io/issues/new'
-};
+  BASE_ISSUES_URL: 'https://github.com/TheButterZone/thebutterzone.github.io/issues/new'
+});
 </script>
 
     <!-- 1. SUBMISSION FORM -->
@@ -141,11 +140,14 @@ document.getElementById("prefillForm").addEventListener("submit", function (e) {
     const username = document.getElementById("web_username").value.trim();
     const btc = document.getElementById("web_btc").value.trim();
 
-    const { BASE_ISSUES_URL, GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
+    const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
 
     const url =
-        BASE_ISSUES_URL +
-        "?template=submit-info.yml" +
+        "https://github.com/" +
+        GITHUB_USERNAME +
+        "/" +
+        REPO_NAME +
+        "/issues/new?template=submit-info.yml" +
         "&username=" + encodeURIComponent(username) +
         "&bitcoin=" + encodeURIComponent(btc);
 
@@ -166,69 +168,76 @@ document.getElementById("prefillForm").addEventListener("submit", function (e) {
 const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
 
         // Pull the stored array database from data.json to populate the directory below
-        fetch('./data.json')
-            .then(response => {
-                if (!response.ok) throw new Error('Database empty or missing.');
-                return response.json();
-            })
-            .then(members => {
-                const directoryContainer = document.getElementById('directory');
-                directoryContainer.innerHTML = '';
+        fetch('./data.json', { cache: "no-store" })
+    .then(response => {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+    })
+    .then(members => {
+        const directoryContainer = document.getElementById('directory');
+        directoryContainer.innerHTML = '';
 
-                if (members.length === 0) {
-                    directoryContainer.innerHTML = '<div class="status-msg">No approved members yet!</div>';
-                    return;
-                }
+        if (!Array.isArray(members) || members.length === 0) {
+            directoryContainer.innerHTML = '<div class="status-msg">No approved members yet!</div>';
+            return;
+        }
 
-                members.forEach(member => {
-    const card = document.createElement('div');
-    card.className = 'member-card';
-    
-    // Extract just the username from the end of the stored URL string
-    // This splits the URL by slashes and grabs the very last piece
-const username = (member.username || "").trim();
-if (!username) return;
+        members.forEach(member => {
+            const username = (member.username || "").trim();
+            if (!username) return;
 
-const freecycleUrl =
-  "https://www.freecycle.org/member/" +
-  encodeURIComponent(username);
+            const freecycleUrl =
+                "https://www.freecycle.org/member/" +
+                encodeURIComponent(username);
 
-const { GITHUB_USERNAME, REPO_NAME, BASE_ISSUES_URL } = window.APP_CONFIG;
+            const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
 
-const removalUrl =
-  BASE_ISSUES_URL +
-  "?template=remove-info.yml" +
-  "&username=" + encodeURIComponent(username);
+            const removalUrl =
+                "https://github.com/" +
+                GITHUB_USERNAME +
+                "/" +
+                REPO_NAME +
+                "/issues/new?template=remove-info.yml&username=" +
+                encodeURIComponent(username);
 
-    card.innerHTML = `
-        <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
-        <a href="${freecycleUrl}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
-        const btn = document.createElement("button");
-btn.className = "btn btn-btc";
-btn.textContent = "📋 Open Wallet & Copy BTC";
+            const card = document.createElement('div');
+            card.className = 'member-card';
 
-btn.addEventListener("click", () => {
-    processBitcoin(member.bitcoin || "");
-});
+            card.innerHTML = `
+                <p style="margin:0 0 15px 0;font-weight:bold;color:#24292e;">
+                    Verified Directory Entry
+                </p>
 
-card.appendChild(btn);
-        
-        <!-- UPDATED REMOVAL BUTTON USING JUST USERNAME -->
-        <a href="${removalUrl}" target="_blank" rel="noopener" class="btn" style="background-color: #cb2431; color: white; margin-top: 10px; display: block; text-align: center;">⚠️ Remove My Entry</a>
-    `;
-    directoryContainer.appendChild(card);
-});
-            })
-            .catch(error => {
-    console.error("Directory load failed:", error);
-    document.getElementById('status').innerText =
-        "Failed to load member records.";
-});
+                <a href="${freecycleUrl}" target="_blank" rel="noopener" class="btn btn-freecycle">
+                    Freecycle Profile
+                </a>
+
+                <button class="btn btn-btc"
+                    onclick='processBitcoin(${JSON.stringify(member.bitcoin || "")})'>
+                    📋 Open Wallet & Copy BTC
+                </button>
+
+                <a href="${removalUrl}" target="_blank" rel="noopener"
+                   class="btn"
+                   style="background-color:#cb2431;color:white;margin-top:10px;display:block;text-align:center;">
+                   ⚠️ Remove My Entry
+                </a>
+            `;
+
+            document.getElementById('directory').appendChild(card);
+        });
+    })
+    .catch(error => {
+        console.error("DATA LOAD FAILED:", error);
+        document.getElementById('status').innerText =
+            'Failed to load member records (check data.json deploy)';
+    });
 <script>
 function processBitcoin(address) {
-    if (!address) return;
+    if (!address || typeof address !== "string") return;
 
-    navigator.clipboard.writeText(address).catch(console.error);
+    navigator.clipboard?.writeText(address).catch(console.error);
+
     window.location.href = "bitcoin:" + address;
 }
 
