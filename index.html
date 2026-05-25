@@ -98,18 +98,17 @@
     <h2>Submit Your Profile Details</h2>
     <form id="prefillForm">
         <div class="form-group">
-            <label for="web_url">Freecycle Member URL</label>
-            <!-- Added a strict pattern attribute to match the exact URL prefix format -->
-            <input 
-                type="url" 
-                id="web_url" 
-                placeholder="https://freecycle.org" 
-                pattern="^https:\/\/www\.freecycle\.org\/member\/[a-zA-Z0-9_\-]+$"
-                title="Must match this format exactly: https://freecycle.org/member/[a-zA-Z0-9_\-]+$"
-                required
-            >
-            <div class="form-help">Must end with your exact username</div>
-        </div>
+    <label for="web_username">Freecycle Username</label>
+    <input 
+        type="text" 
+        id="web_username" 
+        placeholder="e.g., your_username+12" 
+        pattern="[a-zA-Z0-9\+\-]+"
+        title="Username can only contain letters, numbers, plus signs (+), or minus signs (-)."
+        required
+    >
+    <div class="form-help">Enter just your username (letters, numbers, + and - symbols allowed).</div>
+</div>
         <div class="form-group">
             <label for="web_btc">Bitcoin Address</label>
             <!-- Added a strict pattern attribute checking for Legacy, SegWit, or Taproot structures -->
@@ -144,14 +143,18 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
     try {
-        // Gather ONLY the 2 fields you kept
-        const url = document.getElementById('web_url').value.trim();
+        const username = document.getElementById('web_username').value.trim();
         const btc = document.getElementById('web_btc').value.trim();
 
-        // FIX: Added the missing forward slash right after github.com
-        const githubIssueUrl = "https://github.com" + "/" + GITHUB_USERNAME + "/" + REPO_NAME 
+        // Automatically build the perfect full URL behind the scenes
+        const fullUrl = "https://www.freecycle.org/member/" + username;
+
+        // Build the submission path using your verified string combination logic
+        const githubIssueUrl = "https://github.com" 
+            + "/" + GITHUB_USERNAME 
+            + "/" + REPO_NAME 
             + "/issues/new?template=submit-info.yml&website=" 
-            + encodeURIComponent(url) 
+            + encodeURIComponent(fullUrl) 
             + "&bitcoin_address=" + encodeURIComponent(btc);
 
         window.open(githubIssueUrl, '_blank');
@@ -185,7 +188,7 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
         + "/" + GITHUB_USERNAME 
         + "/" + REPO_NAME 
         + "/issues/new?template=remove-info.yml&website=" 
-        + encodeURIComponent(member.url);
+        + encodeURIComponent(member.user);
 
     card.innerHTML = `
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
