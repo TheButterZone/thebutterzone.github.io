@@ -125,14 +125,12 @@
     </form>
 </div>
 
-    <script>
+<script>
 document.getElementById("prefillForm").addEventListener("submit", function (e) {
     e.preventDefault();
 
     const username = document.getElementById("web_username").value.trim();
     const btc = document.getElementById("web_btc").value.trim();
-
-    if (!username || !btc) return;
 
     const url =
       "https://github.com/TheButterZone/thebutterzone.github.io/issues/new?template=submit-info.yml" +
@@ -155,32 +153,6 @@ document.getElementById("prefillForm").addEventListener("submit", function (e) {
         // --- CONFIGURATION ---
 const GITHUB_USERNAME = 'TheButterZone';
 const REPO_NAME = 'thebutterzone.github.io';
-// ---------------------
-
-document.getElementById('prefillForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    try {
-        const username = document.getElementById('web_username').value.trim();
-        const btc = document.getElementById('web_btc').value.trim();
-
-        // Automatically build the perfect full URL behind the scenes
-        const fullUrl = "https://www.freecycle.org/member/" + username;
-
-        // Build the submission path using your verified string combination logic
-        const githubIssueUrl = "https://github.com" 
-            + "/" + GITHUB_USERNAME 
-            + "/" + REPO_NAME 
-            + "/issues/new?template=submit-info.yml&website=" 
-            + encodeURIComponent(fullUrl) 
-            + "&bitcoin=" + encodeURIComponent(btc);
-
-        window.open(githubIssueUrl, '_blank');
-
-    } catch (error) {
-        console.error("Error redirecting:", error);
-    }
-});
 
         // Pull the stored array database from data.json to populate the directory below
         fetch('./data.json')
@@ -203,8 +175,11 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
     
     // Extract just the username from the end of the stored URL string
     // This splits the URL by slashes and grabs the very last piece
-    const urlParts = member.url.split('/');
-    const username = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+    const urlParts = (member.url || "").split('/');
+    const username =
+      (urlParts[urlParts.length - 1] || "").trim() ||
+      (urlParts[urlParts.length - 2] || "").trim() ||
+      "unknown";
 
     // Build the clean removal path using your verified string concatenation logic
     const removalUrl = "https://github.com" 
@@ -215,8 +190,8 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
 
     card.innerHTML = `
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
-        <a href="${escapeHTML(member.url)}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
-        <button class="btn btn-btc" onclick="processBitcoin('${escapeHTML(member.bitcoin)}')">📋 Open Wallet & Copy BTC</button>
+        <a href="${member.url}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
+        <button class="btn btn-btc" onclick="processBitcoin(${JSON.stringify(member.bitcoin)})">📋 Open Wallet & Copy BTC</button>
         
         <!-- UPDATED REMOVAL BUTTON USING JUST USERNAME -->
         <a href="${removalUrl}" target="_blank" rel="noopener" class="btn" style="background-color: #cb2431; color: white; margin-top: 10px; display: block; text-align: center;">⚠️ Remove My Entry</a>
@@ -247,5 +222,6 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
     </script>
+    
 </body>
 </html>
