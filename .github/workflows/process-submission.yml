@@ -1,5 +1,9 @@
 name: Process Submission
 
+permissions:
+  contents: write
+  issues: write
+
 on:
   issues:
     types: [labeled]
@@ -44,12 +48,16 @@ jobs:
 
       # ---------------- PROCESS ----------------
       - name: Process Directory Changes
-        id: process
         run: node scripts/process-directory.js
         env:
-          MODE: ${{ steps.mode.outputs.mode }}
-          USERNAME: ${{ steps.parse.outputs.username }}
-          BTC: ${{ steps.parse.outputs.bitcoin }}
+          ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
+          BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
+          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
+      
+      # ---------------- READ CHANGE FLAG ----------------
+      - name: Read Change Flag
+        id: change_flag
+        run: echo "changed=$(cat .changed)" >> $GITHUB_OUTPUT
 
       # ---------------- COMMIT ----------------
       - name: Commit and Push Changes
@@ -67,13 +75,26 @@ jobs:
           git commit -m "Update directory data"
           git push
 
-      # ---------------- COMMENT STATUS ----------------
-      - name: Comment on Issue
-        uses: peter-evans/create-or-update-comment@v4
+      # ---------------- COMMENT STATUS & CLOSE ----------------
+      - name: Comment and Close Issue
+        if: steps.change_flag.outputs.changed == 'true'
+        uses: actions/github-script@v7
         with:
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            ✅ Processed successfully.
+          script: |
+            const issue_number = context.payload.issue.number;
 
-            Mode: `${{ steps.mode.outputs.mode }}`
-            User: `${{ steps.parse.outputs.username }}`
+            const username = `${{ steps.parse_add.outputs.issueparser_username || steps.parse_remove.outputs.issueparser_username }}`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body: `✅ Processed successfully.\n\nUser: \`${username}\``
+            });
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              state: "closed"
+            });
