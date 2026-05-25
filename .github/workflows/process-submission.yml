@@ -41,38 +41,11 @@ jobs:
           fi
 
       - name: Process Directory Changes
-        run: |
-          node -e "
-          const fs = require('fs');
-
-          const addUrl = '${{ steps.parse_add.outputs.issueparser_website }}'.trim();
-          const btc = '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}'.trim();
-          const removeUser = '${{ steps.parse_remove.outputs.issueparser_username }}'.trim();
-
-          let data = [];
-
-          if (fs.existsSync('data.json')) {
-            try {
-              data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
-            } catch (e) {
-              data = [];
-            }
-          }
-
-          if (btc) {
-            data.push({
-              url: addUrl,
-              bitcoin: btc
-            });
-          }
-
-          if (removeUser) {
-            data = data.filter(entry => entry.url !== removeUser);
-          }
-
-          fs.writeFileSync('data.json', JSON.stringify(data, null, 2));
-          console.log('Updated data.json');
-          "
+        run: node scripts/process-directory.js
+        env:
+          ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
+          BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
+          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
 
       - name: Commit and Push Changes
         run: |
@@ -87,7 +60,6 @@ jobs:
           fi
 
           git commit -m "Update website directory"
-
           git push origin HEAD:${{ github.ref_name }}
 
       - name: Clean Up and Close Issue
