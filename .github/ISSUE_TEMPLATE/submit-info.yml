@@ -11,11 +11,11 @@ body:
       required: true
 
   - type: input
-    id: bitcoin_address
+    id: bitcoin
     attributes:
       label: Bitcoin Address
       description: "Provide a valid Legacy (1...), Nested SegWit (3...), or Native SegWit (bc1...) address."
-      placeholder: "e.g., bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+      placeholder: "e.g., bc1q4xs2vezxa946gcxrmptfe8hquu99wmp8uanst0"
     validations:
       required: true
 
