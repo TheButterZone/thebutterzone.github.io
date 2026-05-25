@@ -84,8 +84,41 @@ if (removeUsername) {
   changed = removed || changed;
 }
 
+/* ---------------- DEDUPE ---------------- */
+function dedupeByUsername(data) {
+  const map = new Map();
+
+  for (const item of data) {
+    if (!item || !item.username) continue;
+
+    const key = item.username.trim().toLowerCase();
+
+    map.set(key, {
+      ...item,
+      username: item.username.trim()
+    });
+  }
+
+  return Array.from(map.values());
+}
+
+/* ---------------- FINALIZE DATA ---------------- */
+const beforeData = JSON.stringify(data);
+
+data = dedupeByUsername(data);
+
+const afterData = JSON.stringify(data);
+
+/* mark changed if dedupe modified anything */
+if (beforeData !== afterData) {
+  changed = true;
+}
+
 /* ---------------- FINAL WRITE ---------------- */
-fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
+fs.writeFileSync(
+  FILE,
+  JSON.stringify(data, null, 2)
+);
 
 console.log("FINAL SIZE:", data.length);
 console.log("CHANGED:", changed);
