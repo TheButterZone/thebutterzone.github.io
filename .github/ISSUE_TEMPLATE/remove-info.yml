@@ -1,6 +1,6 @@
 name: "Remove Your Information"
 description: "Request the removal of your profile from our static website directory."
-title: "[Removal Request]: "
+title: "[Removal Request]: BTC2Free"
 labels: ["pending-review"]
 body:
   - type: markdown
