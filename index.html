@@ -133,10 +133,10 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
         const btc = document.getElementById('web_btc').value.trim();
 
         // FIX: Added the missing forward slash right after github.com
-        const githubIssueUrl = `https://github.com{GITHUB_USERNAME}/${REPO_NAME}/issues/new` +
-            `?template=submit-info.yml` +
-            `&website=${encodeURIComponent(url)}` +
-            `&bitcoin_address=${encodeURIComponent(btc)}`;
+        const githubIssueUrl = "https://github.com" + GITHUB_USERNAME + "/" + REPO_NAME 
+            + "/issues/new?template=submit-info.yml&website=" 
+            + encodeURIComponent(url) 
+            + "&bitcoin_address=" + encodeURIComponent(btc);
 
         window.open(githubIssueUrl, '_blank');
 
