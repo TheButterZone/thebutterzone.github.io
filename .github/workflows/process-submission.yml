@@ -21,12 +21,10 @@ jobs:
         with:
           template-path: .github/ISSUE_TEMPLATE/submit-info.yml
 
-      - name: Validate Inputs and Update Data
+            - name: Validate Inputs and Update Data
         run: |
-          # 1. Extract variables from parsed JSON
+          # 1. Extract ONLY the 2 fields from your template
           URL='${{ steps.parse.outputs.issueparser_website }}'
-          NAME='${{ steps.parse.outputs.issueparser_name }}'
-          BIO='${{ steps.parse.outputs.issueparser_bio }}'
           BTC_ADDRESS='${{ steps.parse.outputs.issueparser_bitcoin_address }}'
           
           # 2. Freecycle Regex Rule
@@ -37,7 +35,7 @@ jobs:
             exit 1
           fi
 
-          # 3. Bitcoin Regex Rule (Supports Legacy, P2SH, SegWit, and Taproot formats)
+          # 3. Bitcoin Regex Rule
           BTC_REGEX="^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-Z0-9]{25,39}|bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{39,59})$"
           if [[ ! $BTC_ADDRESS =~ $BTC_REGEX ]]; then
             echo "Bitcoin address validation failed!"
@@ -50,9 +48,9 @@ jobs:
             echo "[]" > data.json
           fi
 
-          # 5. Append all structured fields to the array using jq
-          jq --arg name "$NAME" --arg url "$URL" --arg bio "$BIO" --arg btc "$BTC_ADDRESS" \
-            '. += [{"name": $name, "url": $url, "bio": $bio, "bitcoin": $btc}]' data.json > tmp.json && mv tmp.json data.json
+          # 5. Append ONLY the 2 fields to the database array
+          jq --arg url "$URL" --arg btc "$BTC_ADDRESS" \
+            '. += [{"url": $url, "bitcoin": $btc}]' data.json > tmp.json && mv tmp.json data.json
 
       - name: Handle Validation Failure
         if: failure()
