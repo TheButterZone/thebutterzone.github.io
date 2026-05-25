@@ -3,9 +3,9 @@ const fs = require("fs");
 const FILE = "data.json";
 
 /* ---------------- INPUTS ---------------- */
-const addUsername = (process.env.ADD_USERNAME || "").trim();
+const mode = (process.env.MODE || "").trim();
+const username = (process.env.USERNAME || "").trim();
 const btc = (process.env.BTC || "").trim();
-const removeUsername = (process.env.REMOVE_USERNAME || "").trim();
 
 /* ---------------- NORMALIZER ---------------- */
 const norm = (s) =>
