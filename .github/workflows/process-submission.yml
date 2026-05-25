@@ -7,6 +7,8 @@ on:
 jobs:
   update-data:
     if: github.event.label.name == 'approved'
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     runs-on: ubuntu-latest
 
     permissions:
@@ -50,8 +52,8 @@ jobs:
           git commit -m "Update website directory"
           git push origin HEAD:${{ github.ref_name }}
 
-      - name: Close Issue
-        uses: actions/github-script@v6
+      - name: Clean Up and Close Issue
+        uses: actions/github-script@v7
         with:
           script: |
             await github.rest.issues.update({
