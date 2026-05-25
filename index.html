@@ -191,8 +191,10 @@ const freecycleUrl =
   encodeURIComponent(username);
 
     // Build the clean removal path using your verified string concatenation logic
-    const url = `${window.APP_CONFIG.BASE_ISSUES_URL}?template=remove-info.yml`
-      + "&username=" + encodeURIComponent(username) 
+    const removalUrl =
+  window.APP_CONFIG.BASE_ISSUES_URL +
+  "?template=remove-info.yml" +
+  "&username=" + encodeURIComponent(username);
 
     card.innerHTML = `
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
@@ -209,23 +211,15 @@ const freecycleUrl =
 });
             })
             .catch(error => {
-                console.error(error);
-                document.getElementById('status').innerText = 'Failed to load member records.';
-            });
+    console.error("Directory load failed:", error);
+    document.getElementById('status').innerText =
+        "Failed to load member records.";
+});
 <script>
 function processBitcoin(address) {
     if (!address) return;
 
-    // Copy BTC address
-    navigator.clipboard.writeText(address)
-        .then(() => {
-            console.log("Copied BTC address:", address);
-        })
-        .catch(err => {
-            console.error("Clipboard failed:", err);
-        });
-
-    // Open wallet handler
+    navigator.clipboard.writeText(address).catch(console.error);
     window.location.href = "bitcoin:" + address;
 }
 
