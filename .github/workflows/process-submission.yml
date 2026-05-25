@@ -6,42 +6,52 @@ on:
 
 jobs:
   update-data:
+    if: github.event.label.name == 'approve'
     runs-on: ubuntu-latest
 
     steps:
-      # ---------------- CHECKOUT ----------------
       - name: Checkout repo
         uses: actions/checkout@v5
 
-      # ---------------- NODE 24 ----------------
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 24.x
 
-      # ---------------- PARSE ADD ----------------
-      - name: Parse Submission
-        id: parse_add
-        uses: stefanbuck/github-issue-parser@v3
-        with:
-          template-path: .github/ISSUE_TEMPLATE/submit-info.yml
+      # ---------------- DETECT MODE ----------------
+      - name: Detect action type
+        id: mode
+        run: |
+          BODY="${{ github.event.issue.body }}"
 
-      # ---------------- PARSE REMOVE ----------------
-      - name: Parse Removal
-        id: parse_remove
-        uses: stefanbuck/github-issue-parser@v3
-        with:
-          template-path: .github/ISSUE_TEMPLATE/remove-info.yml
+          if echo "$BODY" | grep -qi "remove"; then
+            echo "mode=remove" >> $GITHUB_OUTPUT
+          else
+            echo "mode=add" >> $GITHUB_OUTPUT
+          fi
 
-      # ---------------- PROCESS DATA ----------------
+      # ---------------- PARSE DATA ----------------
+      - name: Parse Issue Body
+        id: parse
+        run: |
+          BODY="${{ github.event.issue.body }}"
+
+          USERNAME=$(echo "$BODY" | grep -i "username" | head -n 1 | cut -d':' -f2- | xargs)
+          BTC=$(echo "$BODY" | grep -i "bitcoin" | head -n 1 | cut -d':' -f2- | xargs)
+
+          echo "username=$USERNAME" >> $GITHUB_OUTPUT
+          echo "bitcoin=$BTC" >> $GITHUB_OUTPUT
+
+      # ---------------- PROCESS ----------------
       - name: Process Directory Changes
+        id: process
         run: node scripts/process-directory.js
         env:
-          ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
-          BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
-          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
+          MODE: ${{ steps.mode.outputs.mode }}
+          USERNAME: ${{ steps.parse.outputs.username }}
+          BTC: ${{ steps.parse.outputs.bitcoin }}
 
-      # ---------------- COMMIT CHANGES ----------------
+      # ---------------- COMMIT ----------------
       - name: Commit and Push Changes
         run: |
           git config user.name "github-actions[bot]"
@@ -50,9 +60,20 @@ jobs:
           git add data.json .changed || true
 
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
             exit 0
           fi
 
           git commit -m "Update directory data"
           git push
+
+      # ---------------- COMMENT STATUS ----------------
+      - name: Comment on Issue
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ✅ Processed successfully.
+
+            Mode: `${{ steps.mode.outputs.mode }}`
+            User: `${{ steps.parse.outputs.username }}`
