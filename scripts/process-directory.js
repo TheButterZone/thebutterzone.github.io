@@ -1,14 +1,13 @@
 const fs = require("fs");
 
-const addUsername = process.env.ADD_USERNAME?.trim();
-const btc = process.env.BTC?.trim();
-const removeRaw = process.env.REMOVE_USERNAME?.trim();
+const addUsername = (process.env.ADD_USERNAME || "").trim();
+const btc = (process.env.BTC || "").trim();
+const removeUsername = (process.env.REMOVE_USERNAME || "").trim();
 
 const FILE = "data.json";
 
 let data = [];
 
-/* ---------------- LOAD DATA ---------------- */
 if (fs.existsSync(FILE)) {
   try {
     data = JSON.parse(fs.readFileSync(FILE, "utf8"));
@@ -18,55 +17,54 @@ if (fs.existsSync(FILE)) {
   }
 }
 
-/* ------------- NORMALIZE KEY -------------- */
 const normalize = (s) => (s || "").trim().toLowerCase();
 
-/* ---------------- ADD (MERGE) ------------- */
+let changed = false;
+
+/* ---------------- ADD (MERGE) ---------------- */
 if (addUsername && btc) {
-  const username = normalize(addUsername);
+  const key = normalize(addUsername);
 
-  const existingIndex = data.findIndex(
-    (e) => normalize(e.username) === username
-  );
+  const idx = data.findIndex(e => normalize(e.username) === key);
 
-  if (existingIndex >= 0) {
-    // MERGE UPDATE
-    data[existingIndex] = {
-      ...data[existingIndex],
-      username: addUsername,
-      bitcoin: btc
-    };
-
-    console.log("Updated existing user:", addUsername);
+  if (idx >= 0) {
+    data[idx].username = addUsername;
+    data[idx].bitcoin = btc;
+    console.log("UPDATED:", addUsername);
+    changed = true;
   } else {
-    // INSERT NEW
     data.push({
       username: addUsername,
       bitcoin: btc
     });
-
-    console.log("Added new user:", addUsername);
+    console.log("ADDED:", addUsername);
+    changed = true;
   }
 }
 
-/* ---------------- REMOVE ------------------- */
-if (removeRaw) {
-  const removeUsername = removeRaw.trim().split("\n")[0];
-  const target = normalize(removeUsername);
+/* ---------------- REMOVE ---------------- */
+if (removeUsername) {
+  const key = normalize(removeUsername);
 
   const before = data.length;
+  data = data.filter(e => normalize(e.username) !== key);
 
-  data = data.filter(
-    (e) => normalize(e.username) !== target
-  );
+  const removed = before !== data.length;
 
-  console.log(`Removed ${before - data.length} entries for:`, removeUsername);
+  console.log("REMOVE REQUEST:", removeUsername);
+  console.log("REMOVED:", removed);
+
+  if (removed) changed = true;
 }
 
-/* -------------- ATOMIC WRITE --------------- */
-const tmpFile = FILE + ".tmp";
+/* ---------------- WRITE ATOMIC ---------------- */
+fs.writeFileSync(FILE + ".tmp", JSON.stringify(data, null, 2));
+fs.renameSync(FILE + ".tmp", FILE);
 
-fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2));
-fs.renameSync(tmpFile, FILE);
+console.log("FINAL SIZE:", data.length);
+console.log("CHANGED:", changed);
 
-console.log("Final dataset size:", data.length);
+/* IMPORTANT: signal to GitHub Actions */
+if (!changed) {
+  process.exit(78); // neutral exit (no-op)
+}
