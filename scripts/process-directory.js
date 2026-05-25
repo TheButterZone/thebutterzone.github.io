@@ -3,9 +3,9 @@ const fs = require("fs");
 const FILE = "data.json";
 
 /* ---------------- INPUTS ---------------- */
-const addUsername = (process.env.ADD_USERNAME || "").trim();
+const mode = (process.env.MODE || "").trim();
+const username = (process.env.USERNAME || "").trim();
 const btc = (process.env.BTC || "").trim();
-const removeUsername = (process.env.REMOVE_USERNAME || "").trim();
 
 /* ---------------- NORMALIZER ---------------- */
 const norm = (s) =>
@@ -42,46 +42,33 @@ data = data.filter(e => e.username && e.username.trim() !== "");
 let changed = false;
 
 /* ---------------- ADD / UPDATE ---------------- */
-if (addUsername && btc) {
-  const key = norm(addUsername);
+if (mode === "add" && username && btc) {
+  const key = norm(username);
 
   const idx = data.findIndex(e => norm(e.username) === key);
 
   if (idx >= 0) {
-    data[idx].username = addUsername;
+    console.log("UPDATED:", username);
     data[idx].bitcoin = btc;
-    console.log("UPDATED:", addUsername);
-    changed = true;
   } else {
-    data.push({
-      username: addUsername,
-      bitcoin: btc
-    });
-    console.log("ADDED:", addUsername);
-    changed = true;
+    console.log("ADDED:", username);
+    data.push({ username, bitcoin: btc });
   }
+
+  changed = true;
 }
 
 /* ---------------- REMOVE ---------------- */
-if (removeUsername) {
-  const key = norm(removeUsername);
-
-  console.log("REMOVE RAW:", JSON.stringify(removeUsername));
-  console.log("NORMALIZED KEY:", JSON.stringify(key));
-
-  console.log("DATA USERS:");
-  data.forEach(e => {
-    console.log(JSON.stringify(e.username));
-  });
+if (mode === "remove" && username) {
+  const key = norm(username);
 
   const before = data.length;
-
   data = data.filter(e => norm(e.username) !== key);
 
-  const removed = before !== data.length;
-
-  console.log("REMOVED:", removed);
-  changed = removed || changed;
+  if (data.length !== before) {
+    console.log("REMOVED:", username);
+    changed = true;
+  }
 }
 
 /* ---------------- DEDUPE ---------------- */
