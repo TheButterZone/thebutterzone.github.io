@@ -1,0 +1,36 @@
+name: "Submit Your Information"
+description: "Fill out this form with your Freecycle profile & Bitcoin address to be added to this website."
+title: "[Submission]: "
+labels: ["pending-review"] 
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Thanks for contributing! 
+        Please fill out the fields below. An automated workflow will process this request for review and the website will be updated manually (for now, as this is in beta).
+
+  - type: input
+    id: website
+    attributes:
+      label: "Freecycle Member URL"
+      description: "Must match this format exactly: https://www.freecycle.org/member/[yourusernamehere]"
+      placeholder: "https://www.freecycle.org/member/[yourusernamehere]"
+    validations:
+      required: true
+
+  - type: input
+    id: bitcoin_address
+    attributes:
+      label: "Bitcoin Address"
+      description: "Provide a valid Legacy (1...), Nested SegWit (3...), or Native SegWit (bc1...) address."
+      placeholder: "e.g., bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: "Code of Conduct"
+      options:
+        - label: "I agree to publish this information publicly on the website."
+          required: true
