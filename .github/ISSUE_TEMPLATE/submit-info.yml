@@ -7,7 +7,6 @@ body:
     id: username
     attributes:
         label: Freecycle Username
-                Please fill out the fields below. An automated workflow will process this request for review and the website will be updated manually (for now, as this is in beta).
     validations:
       required: true
 
