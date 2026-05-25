@@ -11,6 +11,7 @@ on:
 jobs:
   update-data:
     if: github.event.label.name == 'approve'
+    
     runs-on: ubuntu-latest
 
     steps:
@@ -59,21 +60,24 @@ jobs:
         id: change_flag
         run: echo "changed=$(cat .changed)" >> $GITHUB_OUTPUT
 
+      # ---------------- DEBUG CHANGE FLAG ----------------
+      - name: Debug changed flag
+        run: |
+          echo "CHANGED FILE CONTENT:"
+          cat .changed || echo "NO FILE"
+
       # ---------------- COMMIT ----------------
       - name: Commit and Push Changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
+      
           git add data.json .changed || true
-
-          if git diff --cached --quiet; then
-            echo "No changes"
-            exit 0
-          fi
-
-          git commit -m "Update directory data"
-          git push
+      
+          git diff --cached --quiet && echo "No commit needed" || (
+            git commit -m "Update directory data"
+            git push
+          )
 
       # ---------------- COMMENT STATUS & CLOSE ----------------
       - name: Comment and Close Issue
