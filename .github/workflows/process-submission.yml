@@ -24,18 +24,24 @@ jobs:
         with:
           node-version: 24
 
-      # ---------------- PARSE ISSUE FORM (ONLY SOURCE OF TRUTH) ----------------
-      - name: Parse Issue
+      # ---------------- PARSE ISSUE BODY ----------------
+      - name: Parse Issue Body
         id: parse
-        uses: stefanbuck/github-issue-parser@v3
-        with:
-          template-path: .github/ISSUE_TEMPLATE/submit-info.yml
+        run: |
+          BODY=$(cat <<'EOF'
+          ${{ github.event.issue.body }}
+          EOF
+          )
 
-      - name: Parse Remove Issue
-        id: parse_remove
-        uses: stefanbuck/github-issue-parser@v3
-        with:
-          template-path: .github/ISSUE_TEMPLATE/remove-info.yml
+          USERNAME=$(echo "$BODY" | awk '/### Freecycle Username/{getline; getline; print}' | xargs)
+
+          BTC=$(echo "$BODY" | awk '/### Bitcoin Address/{getline; getline; print}' | xargs)
+
+          echo "USERNAME=$USERNAME"
+          echo "BTC=$BTC"
+
+          echo "username=$USERNAME" >> $GITHUB_OUTPUT
+          echo "bitcoin=$BTC" >> $GITHUB_OUTPUT
 
       # ---------------- DETERMINE MODE ----------------
       - name: Detect mode
@@ -48,11 +54,11 @@ jobs:
           fi
 
       # ---------------- NORMALIZED PROCESSING ----------------
-      - name: Run directory script
+      - name: Process Directory Changes
         run: node scripts/process-directory.js
         env:
           MODE: ${{ steps.mode.outputs.mode }}
-          USERNAME: ${{ steps.parse.outputs.username || steps.parse_remove.outputs.username }}
+          USERNAME: ${{ steps.parse.outputs.username }}
           BTC: ${{ steps.parse.outputs.bitcoin }}
 
       # ---------------- DEBUG ----------------
