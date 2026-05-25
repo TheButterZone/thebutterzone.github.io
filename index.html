@@ -74,8 +74,8 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             border: 1px solid #e1e4e8;
         }
-        .member-name { margin: 0 0 10px 0; font-size: 1.3rem; color: #24292e; }
-        .member-bio { font-size: 0.95rem; color: #586069; line-height: 1.5; margin-bottom: 15px; }
+        .member-url { margin: 0 0 10px 0; font-size: 1.3rem; color: #24292e; }
+        .member-btc { font-size: 0.95rem; color: #586069; line-height: 1.5; margin-bottom: 15px; }
         
         .btn {
             display: inline-block;
@@ -121,7 +121,7 @@
     <script>
         // --- CONFIGURATION ---
         // Replace these with your exact GitHub Username and Repository Name
-        const GITHUB_USERNAME = 'TheButterZone';
+        const GITHUB_USERNAME = 'thebutterzone';
         const REPO_NAME = 'thebutterzone.github.io';
         // ---------------------
 
@@ -130,18 +130,14 @@
             e.preventDefault();
 
             // Gather inputs from the webpage form
-            const name = document.getElementById('web_name').value;
             const url = document.getElementById('web_url').value;
             const btc = document.getElementById('web_btc').value;
-            const bio = document.getElementById('web_bio').value;
-
+            
             // Map the web elements directly to the IDs used inside your submit-info.yml form
             const githubIssueUrl = `https://github.com{GITHUB_USERNAME}/${REPO_NAME}/issues/new` +
                 `?template=submit-info.yml` +
-                `&name=${encodeURIComponent(name)}` +
                 `&website=${encodeURIComponent(url)}` +
-                `&bitcoin_address=${encodeURIComponent(btc)}` +
-                `&bio=${encodeURIComponent(bio)}`;
+                `&bitcoin_address=${encodeURIComponent(btc)}`;
 
             // Open the pre-filled GitHub page in a new window tab
             window.open(githubIssueUrl, '_blank');
