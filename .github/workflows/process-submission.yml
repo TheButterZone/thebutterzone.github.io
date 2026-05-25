@@ -64,9 +64,13 @@ jobs:
 
           else
             echo "--- PROCESSING REMOVAL ---"
-            TARGET_URL='${{ steps.parse_remove.outputs.issueparser_website }}'
+            # 1. Parse the clean username input string
+            USERNAME=$(echo '${{ steps.parse_remove.outputs.issueparser_username }}' | tr -d '[:space:]')
             
-            # Use jq to select everything EXCEPT the entry matching the target URL
+            # 2. Reconstruct the exact full URL that matches your data.json records
+            TARGET_URL="https://freecycle.org"
+            
+            # 3. Use jq to safely select everything EXCEPT the matching URL entry
             jq --arg target "$TARGET_URL" 'del(.[] | select(.url == $target))' data.json > tmp.json && mv tmp.json data.json
           fi
 
