@@ -141,11 +141,14 @@ document.getElementById("prefillForm").addEventListener("submit", function (e) {
     const username = document.getElementById("web_username").value.trim();
     const btc = document.getElementById("web_btc").value.trim();
 
-    // Build the clean submission path using your verified string concatenation logic
-    const url = `${window.APP_CONFIG.BASE_ISSUES_URL}?template=submit-info.yml`
-      + "&username=" + encodeURIComponent(username) 
-      + "&bitcoin=" + encodeURIComponent(btc);
-   
+    const { BASE_ISSUES_URL, GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
+
+    const url =
+        BASE_ISSUES_URL +
+        "?template=submit-info.yml" +
+        "&username=" + encodeURIComponent(username) +
+        "&bitcoin=" + encodeURIComponent(btc);
+
     window.open(url, "_blank", "noopener,noreferrer");
 });
 </script>
@@ -187,22 +190,28 @@ const username = (member.username || "").trim();
 if (!username) return;
 
 const freecycleUrl =
-  "https://freecycle.org/member/" +
+  "https://www.freecycle.org/member/" +
   encodeURIComponent(username);
 
-    // Build the clean removal path using your verified string concatenation logic
-    const removalUrl =
-  window.APP_CONFIG.BASE_ISSUES_URL +
+const { GITHUB_USERNAME, REPO_NAME, BASE_ISSUES_URL } = window.APP_CONFIG;
+
+const removalUrl =
+  BASE_ISSUES_URL +
   "?template=remove-info.yml" +
   "&username=" + encodeURIComponent(username);
 
     card.innerHTML = `
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
         <a href="${freecycleUrl}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
-        <button class="btn btn-btc"
-            onclick='processBitcoin(${JSON.stringify(member.bitcoin)})'>
-            📋 Open Wallet & Copy BTC
-        </button>
+        const btn = document.createElement("button");
+btn.className = "btn btn-btc";
+btn.textContent = "📋 Open Wallet & Copy BTC";
+
+btn.addEventListener("click", () => {
+    processBitcoin(member.bitcoin || "");
+});
+
+card.appendChild(btn);
         
         <!-- UPDATED REMOVAL BUTTON USING JUST USERNAME -->
         <a href="${removalUrl}" target="_blank" rel="noopener" class="btn" style="background-color: #cb2431; color: white; margin-top: 10px; display: block; text-align: center;">⚠️ Remove My Entry</a>
