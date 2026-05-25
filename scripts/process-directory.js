@@ -21,50 +21,35 @@ const normalize = (s) => (s || "").trim().toLowerCase();
 
 let changed = false;
 
-/* ---------------- ADD (MERGE) ---------------- */
+/* ADD / MERGE */
 if (addUsername && btc) {
   const key = normalize(addUsername);
 
   const idx = data.findIndex(e => normalize(e.username) === key);
 
   if (idx >= 0) {
-    data[idx].username = addUsername;
     data[idx].bitcoin = btc;
-    console.log("UPDATED:", addUsername);
+    data[idx].username = addUsername;
     changed = true;
   } else {
-    data.push({
-      username: addUsername,
-      bitcoin: btc
-    });
-    console.log("ADDED:", addUsername);
+    data.push({ username: addUsername, bitcoin: btc });
     changed = true;
   }
 }
 
-/* ---------------- REMOVE ---------------- */
+/* REMOVE */
 if (removeUsername) {
   const key = normalize(removeUsername);
 
   const before = data.length;
+
   data = data.filter(e => normalize(e.username) !== key);
 
-  const removed = before !== data.length;
-
-  console.log("REMOVE REQUEST:", removeUsername);
-  console.log("REMOVED:", removed);
-
-  if (removed) changed = true;
+  if (data.length !== before) changed = true;
 }
 
-/* ---------------- WRITE ATOMIC ---------------- */
-fs.writeFileSync(FILE + ".tmp", JSON.stringify(data, null, 2));
-fs.renameSync(FILE + ".tmp", FILE);
+/* WRITE */
+fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
+fs.writeFileSync(".changed", changed ? "true" : "false");
 
-console.log("FINAL SIZE:", data.length);
-console.log("CHANGED:", changed);
-
-/* IMPORTANT: signal to GitHub Actions */
-if (!changed) {
-  process.exit(78); // neutral exit (no-op)
-}
+console.log("changed =", changed);
