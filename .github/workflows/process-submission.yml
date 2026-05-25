@@ -1,0 +1,115 @@
+name: Process Website Submission (With Approval)
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  update-data:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse Issue Form
+        id: parse
+        uses: stefanbuck/github-issue-parser@v3
+        with:
+          template-path: .github/ISSUE_TEMPLATE/submit-info.yml
+
+      - name: Validate Inputs and Update Data
+        run: |
+          # 1. Extract variables from parsed JSON
+          URL='${{ steps.parse.outputs.issueparser_website }}'
+          NAME='${{ steps.parse.outputs.issueparser_name }}'
+          BIO='${{ steps.parse.outputs.issueparser_bio }}'
+          BTC_ADDRESS='${{ steps.parse.outputs.issueparser_bitcoin_address }}'
+          
+          # 2. Freecycle Regex Rule
+          FREECYCLE_REGEX="^https:\/\/www\.freecycle\.org\/member\/[a-zA-Z0-9_\-]+$"
+          if [[ ! $URL =~ $FREECYCLE_REGEX ]]; then
+            echo "URL validation failed!"
+            echo "ERROR_MSG=The URL provided does not match the required format: \`https://freecycle.org\`." >> $GITHUB_ENV
+            exit 1
+          fi
+
+          # 3. Bitcoin Regex Rule (Supports Legacy, P2SH, SegWit, and Taproot formats)
+          BTC_REGEX="^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-Z0-9]{25,39}|bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{39,59})$"
+          if [[ ! $BTC_ADDRESS =~ $BTC_REGEX ]]; then
+            echo "Bitcoin address validation failed!"
+            echo "ERROR_MSG=The Bitcoin address provided is invalid. Please check for typos or incorrect characters." >> $GITHUB_ENV
+            exit 1
+          fi
+
+          # 4. Initialize JSON data file if missing
+          if [ ! -f data.json ]; then
+            echo "[]" > data.json
+          fi
+
+          # 5. Append all structured fields to the array using jq
+          jq --arg name "$NAME" --arg url "$URL" --arg bio "$BIO" --arg btc "$BTC_ADDRESS" \
+            '. += [{"name": $name, "url": $url, "bio": $bio, "bitcoin": $btc}]' data.json > tmp.json && mv tmp.json data.json
+
+      - name: Handle Validation Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Remove 'approved' label so admin can re-trigger later
+            try {
+              await github.rest.issues.removeLabel({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'approved'
+              });
+            } catch(e) {}
+
+            const errorMsg = process.env.ERROR_MSG || "An unknown validation error occurred.";
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `❌ **Approval Halted:** Input validation failed.\n\n> ${errorMsg}\n\nPlease ask the user to edit their issue body before re-applying the approval label.`
+            });
+
+      - name: Commit and Push Changes
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          git add data.json
+          git commit -m "docs: add ${{ steps.parse.outputs.issueparser_name }} to site records"
+          git push
+
+      - name: Clean Up and Close Issue
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'pending-review'
+              });
+            } catch(e) {}
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "🎉 **Approved!** All information passed validation, has been saved to the database, and the live site is updating."
+            });
+            github.rest.issues.update({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed'
+            });
