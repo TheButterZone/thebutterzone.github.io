@@ -8,6 +8,13 @@ const removeUsername = (process.env.REMOVE_USERNAME || "").trim();
 
 let data = [];
 
+const norm = (s) =>
+  (s || "")
+    .replace(/\u200B/g, "")
+    .replace(/\r/g, "")
+    .trim()
+    .toLowerCase();
+
 if (fs.existsSync(FILE)) {
   try {
     data = JSON.parse(fs.readFileSync(FILE, "utf8"));
@@ -16,8 +23,6 @@ if (fs.existsSync(FILE)) {
     data = [];
   }
 }
-
-const norm = (s) => (s || "").trim().toLowerCase();
 
 let changed = false;
 
@@ -43,15 +48,21 @@ if (addUsername && btc) {
 if (removeUsername) {
   const key = norm(removeUsername);
 
+  console.log("REMOVE RAW:", JSON.stringify(removeUsername));
+  console.log("NORMALIZED KEY:", JSON.stringify(key));
+
+  console.log("DATA USERS:");
+  data.forEach(e => {
+    console.log(JSON.stringify(e.username));
+  });
+
   const before = data.length;
 
   data = data.filter(e => norm(e.username) !== key);
 
   const removed = before !== data.length;
 
-  console.log("REMOVE:", removeUsername, "REMOVED:", removed);
-
-  if (removed) changed = true;
+  console.log("REMOVED:", removed);
 }
 
 /* ---------------- WRITE ---------------- */
