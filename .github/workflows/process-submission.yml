@@ -28,7 +28,7 @@ jobs:
         id: mode
         run: |
           BODY="${{ github.event.issue.body }}"
-
+      
           if echo "$BODY" | grep -qi "remove"; then
             echo "mode=remove" >> $GITHUB_OUTPUT
           else
@@ -51,9 +51,9 @@ jobs:
       - name: Process Directory Changes
         run: node scripts/process-directory.js
         env:
-          ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
-          BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
-          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
+          MODE: ${{ steps.mode.outputs.mode }}
+          USERNAME: ${{ steps.parse.outputs.username }}
+          BTC: ${{ steps.parse.outputs.bitcoin }}
       
       # ---------------- READ CHANGE FLAG ----------------
       - name: Read Change Flag
@@ -86,16 +86,16 @@ jobs:
         with:
           script: |
             const issue_number = context.payload.issue.number;
-
-            const username = `${{ steps.parse_add.outputs.issueparser_username || steps.parse_remove.outputs.issueparser_username }}`;
-
+      
+            const username = `${{ steps.parse.outputs.username }}`;
+      
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number,
               body: `✅ Processed successfully.\n\nUser: \`${username}\``
             });
-
+      
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
