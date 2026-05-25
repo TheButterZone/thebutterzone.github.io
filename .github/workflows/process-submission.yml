@@ -22,12 +22,6 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Run Processing Script
-        run: npm start
-
       - name: Parse Submission Form
         id: parse_add
         uses: stefanbuck/github-issue-parser@v3
