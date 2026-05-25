@@ -1,9 +1,9 @@
 name: Process Website Directory (With Approval)
+
 on:
   issues:
     types: [labeled]
 
-# Fix: Force the runner to use Node 24 to completely remove the deprecation warning
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -11,23 +11,19 @@ jobs:
   update-data:
     if: github.event.label.name == 'approved'
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
       issues: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
-
-      - name: Execute Workspace Scripts
-        uses: actions/github-script@v8
-        with:
-          script: |
 
       - name: Install Dependencies
         run: npm ci
@@ -47,79 +43,52 @@ jobs:
         with:
           template-path: .github/ISSUE_TEMPLATE/remove-info.yml
 
-      - name: Process Directory Changes
+      - name: Ensure data.json exists
         run: |
-          set -e
-
-          # Extract and clean inputs
-          URL=$(echo '${{ steps.parse_add.outputs.issueparser_website }}' | tr -d '[:space:]')
-          BTC_ADDRESS=$(echo '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}' | tr -d '[:space:]')
-          BTC_CHECK=$(echo '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}' | tr -d '[:space:]')
-
           if [ ! -f data.json ]; then
             echo "[]" > data.json
           fi
 
-          # Fix: Used standard string length test (-n) to avoid syntax crashes in Ubuntu Bash
-          if [ -n "$BTC_CHECK" ]; then
-            echo "--- PROCESSING ADDITION ---"
-            
-            FREECYCLE_REGEX="^https:\/\/www\.freecycle\.org\/member\/[a-zA-Z0-9\+\-]+$"
-            if [[ ! "$URL" =~ $FREECYCLE_REGEX ]]; then
-              echo "ERROR_MSG=The Freecycle URL provided does not match the required format." >> $GITHUB_ENV
-              exit 1
-            fi
+      - name: Process Directory Changes
+        run: |
+          set -e
 
-            BTC_REGEX="^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-Z0-9]{25,39}|bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{39,59})$"
-            if [[ ! "$BTC_ADDRESS" =~ $BTC_REGEX ]]; then
-              echo "ERROR_MSG=The Bitcoin address provided is invalid." >> $GITHUB_ENV
-              exit 1
-            fi
+          URL=$(echo '${{ steps.parse_add.outputs.issueparser_website }}' | xargs)
+          BTC_ADDRESS=$(echo '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}' | xargs)
+          USERNAME=$(echo '${{ steps.parse_remove.outputs.issueparser_username }}' | xargs)
+
+          if [ -n "$BTC_ADDRESS" ]; then
+            echo "--- PROCESSING ADDITION ---"
 
             jq --arg url "$URL" --arg btc "$BTC_ADDRESS" \
-              '. += [{"url": $url, "bitcoin": $btc}]' data.json > tmp.json && mv tmp.json data.json
+              '. += [{"url": $url, "bitcoin": $btc}]' \
+              data.json > tmp.json
 
-          else
+            mv tmp.json data.json
+
+          elif [ -n "$USERNAME" ]; then
             echo "--- PROCESSING REMOVAL ---"
-            USERNAME=$(echo '${{ steps.parse_remove.outputs.issueparser_username }}' | tr -d '[:space:]')
-            TARGET_URL="https://freecycle.org"
-            
-            jq --arg target "$TARGET_URL" 'del(.[] | select(.url == $target))' data.json > tmp.json && mv tmp.json data.json
+
+            jq --arg target "$USERNAME" \
+              'del(.[] | select(.url == $target))' \
+              data.json > tmp.json
+
+            mv tmp.json data.json
           fi
 
-      - name: Handle Validation Failure
-        if: failure()
-        uses: actions/github-script@v8
-        with:
-          script: |
-            try {
-              await github.rest.issues.removeLabel({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: 'approved'
-              });
-            } catch(e) {}
-            const errorMsg = process.env.ERROR_MSG || "An unknown validation error occurred inside the workflow processor script.";
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `❌ **Approval Halted:** Input validation failed.\n\n> ${errorMsg}`
-            });
-
       - name: Commit and Push Changes
-        if: success()
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add data.json
-          git commit -m "docs: modify website directory records via admin action"
+
+          git diff --cached --quiet || git commit -m "docs: modify website directory records via admin action"
+
           git push
 
       - name: Clean Up and Close Issue
-        if: success()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           script: |
             try {
@@ -129,14 +98,16 @@ jobs:
                 repo: context.repo.repo,
                 name: 'pending-review'
               });
-            } catch(e) {}
-            github.rest.issues.createComment({
+            } catch (e) {}
+
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "🎉 **Approved!** The change has been successfully merged and the website directory has updated."
+              body: "✅ Approved! The website directory has been updated."
             });
-            github.rest.issues.update({
+
+            await github.rest.issues.update({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
