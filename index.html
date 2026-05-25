@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC2Free Member Directory</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f5f7;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #1a1a1a; }
+        
+        /* Grid layout for the profiles */
+        .directory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        /* Profile card design */
+        .member-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e1e4e8;
+        }
+        .member-name { margin: 0 0 10px 0; font-size: 1.4rem; color: #24292e; }
+        .member-bio { font-size: 0.95rem; color: #586069; line-height: 1.5; margin-bottom: 15px; }
+        
+        /* Links and Crypto buttons */
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .btn-freecycle { background-color: #3f681c; color: white; }
+        .btn-btc { background-color: #f7931a; color: white; cursor: pointer; border: none; }
+        
+        /* Loading/Error states */
+        .status-msg { text-align: center; font-size: 1.2rem; color: #666; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <h1>Verified Members Directory</h1>
+    
+    <!-- JavaScript will inject cards directly into this container -->
+    <div id="directory" class="directory-grid">
+        <div class="status-msg" id="status">Loading members database...</div>
+    </div>
+
+    <script>
+        // Use standard browser fetch to retrieve your workflow's data.json file
+        fetch('./data.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Database file not found or empty.');
+                }
+                return response.json();
+            })
+            .then(members => {
+                const directoryContainer = document.getElementById('directory');
+                
+                // Clear the loading message
+                directoryContainer.innerHTML = '';
+
+                // If JSON is empty array `[]`, show empty message
+                if (members.length === 0) {
+                    directoryContainer.innerHTML = '<div class="status-msg">No approved members yet!</div>';
+                    return;
+                }
+
+                // Loop through every profile saved by your GitHub Actions bot
+                members.forEach(member => {
+                    // Create a card shell
+                    const card = document.createElement('div');
+                    card.className = 'member-card';
+
+                    // Inject structured HTML securely (escaping variables to protect layout)
+                    card.innerHTML = `
+                        <h2 class="member-name">${escapeHTML(member.name)}</h2>
+                        <p class="member-bio">${escapeHTML(member.bio)}</p>
+                        <a href="${escapeHTML(member.url)}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
+                        <button class="btn btn-btc" onclick="copyBTC('${escapeHTML(member.bitcoin)}')">📋 Copy BTC Address</button>
+                    `;
+
+                    // Append the finished card to the page grid
+                    directoryContainer.appendChild(card);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading data:', error);
+                document.getElementById('status').innerText = 'Failed to load member records.';
+            });
+
+        // Helper function to safely copy the user's Bitcoin address to clipboard
+        function copyBTC(address) {
+            navigator.clipboard.writeText(address).then(() => {
+                alert('Bitcoin address copied to clipboard:\n' + address);
+            }).catch(err => {
+                alert('Failed to copy address. Address text:\n' + address);
+            });
+        }
+
+        // Helper function to prevent basic text injection breaking your site HTML
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
