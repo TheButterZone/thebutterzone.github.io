@@ -98,10 +98,6 @@
         <h2>Submit Your Profile Details</h2>
         <form id="prefillForm">
             <div class="form-group">
-                <label for="web_name">Full Name</label>
-                <input type="text" id="web_name" placeholder="e.g., Jane Doe" required>
-            </div>
-            <div class="form-group">
                 <label for="web_url">Freecycle Member URL</label>
                 <input type="url" id="web_url" placeholder="https://freecycle.org" required>
                 <div class="form-help">Must start with your exact profile prefix.</div>
@@ -109,10 +105,6 @@
             <div class="form-group">
                 <label for="web_btc">Bitcoin Address</label>
                 <input type="text" id="web_btc" placeholder="e.g., bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" required>
-            </div>
-            <div class="form-group">
-                <label for="web_bio">Short Bio</label>
-                <textarea id="web_bio" placeholder="Tell us a bit about yourself..." required></textarea>
             </div>
             <button type="submit" class="submit-btn">🚀 Prepare Submission via GitHub</button>
         </form>
@@ -174,8 +166,6 @@
                     const card = document.createElement('div');
                     card.className = 'member-card';
                     card.innerHTML = `
-                        <h3 class="member-name">${escapeHTML(member.name)}</h3>
-                        <p class="member-bio">${escapeHTML(member.bio)}</p>
                         <a href="${escapeHTML(member.url)}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
                         <button class="btn btn-btc" onclick="copyBTC('${escapeHTML(member.bitcoin)}')">📋 Copy BTC</button>
                     `;
