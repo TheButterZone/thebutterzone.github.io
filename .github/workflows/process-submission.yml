@@ -39,7 +39,7 @@ jobs:
           # DUAL ROUTE LOGIC: Check if this is an Addition or a Removal
           BTC_CHECK='${{ steps.parse_add.outputs.issueparser_bitcoin_address }}'
 
-          if [ -not -z "$BTC_CHECK" ]; then
+          if [ -n "$BTC_CHECK" ]; then
             echo "--- PROCESSING ADDITION ---"
             URL='${{ steps.parse_add.outputs.issueparser_website }}'
             BTC_ADDRESS='${{ steps.parse_add.outputs.issueparser_bitcoin_address }}'
