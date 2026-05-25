@@ -10,92 +10,112 @@ on:
 
 jobs:
   update-data:
+    # Only run when "approve" label is added
     if: github.event.label.name == 'approve'
-    
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v5
 
-      - name: Setup Node
-        uses: actions/setup-node@v5
+      # ---------------- CHECKOUT ----------------
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ---------------- NODE 24 ----------------
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
         with:
           node-version: 24.x
 
       # ---------------- DETECT MODE ----------------
-      - name: Detect action type
+      - name: Detect mode (add/remove)
         id: mode
         run: |
           BODY="${{ github.event.issue.body }}"
-      
+
           if echo "$BODY" | grep -qi "remove"; then
             echo "mode=remove" >> $GITHUB_OUTPUT
           else
             echo "mode=add" >> $GITHUB_OUTPUT
           fi
 
-      # ---------------- PARSE DATA ----------------
-      - name: Parse Issue Body
+          echo "Detected mode: $(cat $GITHUB_OUTPUT)"
+
+      # ---------------- PARSE ISSUE ----------------
+      - name: Parse issue body
         id: parse
         run: |
           BODY="${{ github.event.issue.body }}"
 
-          USERNAME=$(echo "$BODY" | grep -i "username" | head -n 1 | cut -d':' -f2- | xargs)
-          BTC=$(echo "$BODY" | grep -i "bitcoin" | head -n 1 | cut -d':' -f2- | xargs)
+          USERNAME=$(echo "$BODY" | grep -i "username" | head -n 1 | cut -d':' -f2- | xargs || true)
+          BTC=$(echo "$BODY" | grep -i "bitcoin" | head -n 1 | cut -d':' -f2- | xargs || true)
 
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
           echo "bitcoin=$BTC" >> $GITHUB_OUTPUT
 
-      # ---------------- PROCESS ----------------
-      - name: Process Directory Changes
+          echo "Parsed username: $USERNAME"
+          echo "Parsed bitcoin: $BTC"
+
+      # ---------------- PROCESS DIRECTORY ----------------
+      - name: Process directory changes
         run: node scripts/process-directory.js
         env:
           MODE: ${{ steps.mode.outputs.mode }}
           USERNAME: ${{ steps.parse.outputs.username }}
           BTC: ${{ steps.parse.outputs.bitcoin }}
-      
-      # ---------------- READ CHANGE FLAG ----------------
-      - name: Read Change Flag
-        id: change_flag
-        run: echo "changed=$(cat .changed)" >> $GITHUB_OUTPUT
 
-      # ---------------- DEBUG CHANGE FLAG ----------------
-      - name: Debug changed flag
+      # ---------------- DEBUG OUTPUT ----------------
+      - name: Debug output
         run: |
-          echo "CHANGED FILE CONTENT:"
-          cat .changed || echo "NO FILE"
+          echo "==== data.json ===="
+          cat data.json || echo "missing data.json"
 
-      # ---------------- COMMIT ----------------
-      - name: Commit and Push Changes
+          echo "==== .changed ===="
+          cat .changed || echo "missing .changed"
+
+      # ---------------- READ CHANGE FLAG ----------------
+      - name: Read change flag
+        id: change_flag
+        run: |
+          if [ -f .changed ]; then
+            echo "changed=$(cat .changed)" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ---------------- COMMIT CHANGES ----------------
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      
-          git add data.json .changed || true
-      
-          git diff --cached --quiet && echo "No commit needed" || (
-            git commit -m "Update directory data"
-            git push
-          )
 
-      # ---------------- COMMENT STATUS & CLOSE ----------------
-      - name: Comment and Close Issue
+          git add data.json .changed || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "Update directory data"
+          git push
+
+      # ---------------- COMMENT + CLOSE ISSUE ----------------
+      - name: Comment and close issue
         if: steps.change_flag.outputs.changed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const issue_number = context.payload.issue.number;
-      
+
             const username = `${{ steps.parse.outputs.username }}`;
-      
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number,
               body: `✅ Processed successfully.\n\nUser: \`${username}\``
             });
-      
+
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
