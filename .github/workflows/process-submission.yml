@@ -1,4 +1,4 @@
-name: Process Website Directory
+name: Process Submission
 
 on:
   issues:
@@ -6,107 +6,53 @@ on:
 
 jobs:
   update-data:
-    if: github.event.label.name == 'approved'
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-      issues: write
-
     steps:
-      - name: Checkout repository
+      # ---------------- CHECKOUT ----------------
+      - name: Checkout repo
         uses: actions/checkout@v5
 
-      - name: Setup Node.js
+      # ---------------- NODE 24 ----------------
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '24'
+          node-version: 24.x
 
-      # ---------------- ADD PARSING ----------------
+      # ---------------- PARSE ADD ----------------
       - name: Parse Submission
         id: parse_add
         uses: stefanbuck/github-issue-parser@v3
         with:
           template-path: .github/ISSUE_TEMPLATE/submit-info.yml
-      
+
+      # ---------------- PARSE REMOVE ----------------
       - name: Parse Removal
         id: parse_remove
         uses: stefanbuck/github-issue-parser@v3
         with:
           template-path: .github/ISSUE_TEMPLATE/remove-info.yml
 
-      # --------  (KEEP YOUR REGEX VALIDATION HERE --------
-      - name: Validate Inputs
-        run: |
-          node -e "
-          const username = process.env.ADD_USERNAME;
-          const btc = process.env.BTC;
-      
-          const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
-          const btcRegex = /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/;
-      
-          if (username && !usernameRegex.test(username)) {
-            console.error('Invalid username');
-            process.exit(1);
-          }
-      
-          if (btc && !btcRegex.test(btc)) {
-            console.error('Invalid BTC address');
-            process.exit(1);
-          }
-      
-          console.log('Validation OK');
-          "
-        env:
-            ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
-            BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
-
-      - name: DEBUG REMOVE INPUT
-        run: |
-          echo "RAW ISSUE BODY:"
-          echo "${{ github.event.issue.body }}"
-      
-          echo "PARSED REMOVE USERNAME:"
-          echo "${{ steps.parse_remove.outputs.issueparser_username }}"
-
-      # ---------------- PROCESS ----------------
+      # ---------------- PROCESS DATA ----------------
       - name: Process Directory Changes
         run: node scripts/process-directory.js
         env:
           ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
           BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
-          REMOVE_USERNAME: ${{ github.event.issue.body }}
+          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
 
-      # ---------------- READ CHANGE FLAG ----------------
-      - name: Read change state
-        id: changes
-        run: echo "changed=$(cat .changed)" >> $GITHUB_OUTPUT
-
-      # ---------------- COMMIT ----------------
+      # ---------------- COMMIT CHANGES ----------------
       - name: Commit and Push Changes
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add data.json
+          git add data.json .changed || true
 
-          if git diff --staged --quiet; then
-            echo "No changes"
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
             exit 0
           fi
 
-          git commit -m "Update directory"
-          git push origin HEAD:${{ github.ref_name }}
-
-      # ---------------- CLOSE ONLY IF CHANGED ----------------
-      - name: Close Issue
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.update({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "closed"
-            });
+          git commit -m "Update directory data"
+          git push
