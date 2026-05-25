@@ -103,6 +103,7 @@ window.APP_CONFIG = Object.freeze({
 
     <!-- 1. SUBMISSION FORM -->
 <div class="form-container">
+    <h1>If you will offer items to your Freecycle town, of equivalent value to the BTC you receive, then submit your profile details</h1>
     <h2>Submit Your Profile Details</h2>
     <form id="prefillForm">
         <div class="form-group">
@@ -212,7 +213,7 @@ fetch('./data.json', { cache: "no-store" })
 
                 <button class="btn btn-btc"
                     onclick='processBitcoin(${JSON.stringify(member.bitcoin || "")})'>
-                    📋 Open Wallet & Copy BTC
+                    📋 Copy ₿ Address + Open Wallet
                 </button>
 
                 <a href="${removalUrl}" target="_blank" rel="noopener"
