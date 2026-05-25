@@ -4,7 +4,12 @@ const FILE = "data.json";
 
 const addUsername = (process.env.ADD_USERNAME || "").trim();
 const btc = (process.env.BTC || "").trim();
-const removeUsername = (process.env.REMOVE_USERNAME || "").trim();
+function extractRemoveUsername(body) {
+  const match = body.match(/(?:^|\n)\s*([a-zA-Z0-9_-]{3,20})\s*(?:\n|$)/);
+  return match ? match[1] : "";
+}
+
+const removeUsername = extractRemoveUsername(process.env.REMOVE_USERNAME || "");
 
 let data = [];
 
