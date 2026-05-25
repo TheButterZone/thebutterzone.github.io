@@ -45,8 +45,9 @@ jobs:
             BTC_ADDRESS='${{ steps.parse_add.outputs.issueparser_bitcoin_address }}'
             
             # Regex Verifications
-            FREECYCLE_REGEX="^https:\/\/www\.freecycle\.org\/member\/[a-zA-Z0-9_\-]+$"
-            if [[ ! $URL =~ $FREECYCLE_REGEX ]]; then
+            FREECYCLE_REGEX="^https:\/\/www\.freecycle\.org\/member\/[a-zA-Z0-9\+\-]+$"
+            if [[ ! "$URL" =~ $FREECYCLE_REGEX ]]; then
+              echo "URL validation failed for: $URL"
               echo "ERROR_MSG=The Freecycle URL provided does not match the required format." >> $GITHUB_ENV
               exit 1
             fi
