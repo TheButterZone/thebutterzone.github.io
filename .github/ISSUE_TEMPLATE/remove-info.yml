@@ -1,20 +1,13 @@
-name: Remove Your Information
-description: Request the removal of your profile from our static website directory using your username.
+name: "Remove Your Information"
+description: "Request the removal of your profile from our static website directory using your username."
 title: "[Removal Request]: BTC2Free"
 labels: ["pending-review"]
+
 body:
   - type: input
     id: username
     attributes:
       label: Freecycle Username to Remove
-      description: Enter just your username (letters, numbers, + and - symbols allowed).
+      placeholder: "Enter just your username (letters, numbers, + and - symbols allowed)."
     validations:
       required: true
-      
-  - type: checkboxes
-    id: confirm
-    attributes:
-      label: "Confirmation"
-      options:
-        - label: "I confirm that I am the owner of this profile, my GitHub username is the same used for initial submission, and want it removed."
-          required: true
