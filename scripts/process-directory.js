@@ -8,7 +8,6 @@ const removeUsername = (process.env.REMOVE_USERNAME || "").trim();
 
 let data = [];
 
-/* LOAD */
 if (fs.existsSync(FILE)) {
   try {
     data = JSON.parse(fs.readFileSync(FILE, "utf8"));
@@ -22,25 +21,25 @@ const norm = (s) => (s || "").trim().toLowerCase();
 
 let changed = false;
 
-/* ---------------- ADD / UPSERT ---------------- */
+/* ---------------- ADD / UPDATE ---------------- */
 if (addUsername && btc) {
   const key = norm(addUsername);
 
   const idx = data.findIndex(e => norm(e.username) === key);
 
   if (idx >= 0) {
-    data[idx].username = addUsername;
     data[idx].bitcoin = btc;
-    console.log("UPDATED:", addUsername);
+    data[idx].username = addUsername;
     changed = true;
+    console.log("UPDATED:", addUsername);
   } else {
     data.push({ username: addUsername, bitcoin: btc });
-    console.log("ADDED:", addUsername);
     changed = true;
+    console.log("ADDED:", addUsername);
   }
 }
 
-/* ---------------- REMOVE ---------------- */
+/* ---------------- REMOVE (NOW RELIABLE) ---------------- */
 if (removeUsername) {
   const key = norm(removeUsername);
 
@@ -57,7 +56,6 @@ if (removeUsername) {
 
 /* ---------------- WRITE ---------------- */
 fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
-fs.writeFileSync(".changed", changed ? "true" : "false");
 
 console.log("FINAL SIZE:", data.length);
 console.log("CHANGED:", changed);
