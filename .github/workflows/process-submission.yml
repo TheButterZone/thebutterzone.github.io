@@ -22,12 +22,39 @@ jobs:
         with:
           node-version: '24'
 
-      # ---------------- ADD PARSING (KEEP YOUR REGEX VALIDATION HERE) ----------------
+      # ---------------- ADD PARSING ----------------
       - name: Parse Submission
         id: parse_add
         uses: stefanbuck/github-issue-parser@v3
         with:
           template-path: .github/ISSUE_TEMPLATE/submit-info.yml
+      
+      - name: Parse Removal
+        id: parse_remove
+        uses: stefanbuck/github-issue-parser@v3
+        with:
+          template-path: .github/ISSUE_TEMPLATE/remove-info.yml
+
+      # --------  (KEEP YOUR REGEX VALIDATION HERE --------
+      - name: Validate Inputs
+        run: |
+          node -e "
+          const username = '${{ steps.parse_add.outputs.issueparser_username }}';
+          const btc = '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}';
+      
+          const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+          const btcRegex = /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/;
+      
+          if (username && !usernameRegex.test(username)) {
+            console.error('Invalid username');
+            process.exit(1);
+          }
+      
+          if (btc && !btcRegex.test(btc)) {
+            console.error('Invalid BTC address');
+            process.exit(1);
+          }
+          "
 
       # ---------------- PROCESS ----------------
       - name: Process Directory Changes
@@ -35,7 +62,7 @@ jobs:
         env:
           ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
           BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
-          REMOVE_USERNAME: ${{ github.event.issue.body }}
+          REMOVE_USERNAME: ${{ steps.parse_remove.outputs.issueparser_username }}
 
       # ---------------- READ CHANGE FLAG ----------------
       - name: Read change state
