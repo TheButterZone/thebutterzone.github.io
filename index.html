@@ -104,7 +104,7 @@
         id="web_username" 
         placeholder="e.g., your_username+12" 
         pattern="[a-zA-Z0-9\+\-]+"
-        title="Username can only contain letters, numbers, plus signs (+), or minus signs (-)."
+        title="Username can only contain letters, numbers, plus signs (+), or minus signs (-)"
         required
     >
     <div class="form-help">Enter just your username (letters, numbers, + and - symbols allowed).</div>
@@ -183,21 +183,24 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
     const card = document.createElement('div');
     card.className = 'member-card';
     
-    // Build the clean removal link format using your string concatenation logic
+    // Extract just the username from the end of the stored URL string
+    // This splits the URL by slashes and grabs the very last piece
+    const urlParts = member.url.split('/');
+    const username = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+
+    // Build the clean removal path using your verified string concatenation logic
     const removalUrl = "https://github.com" 
         + "/" + GITHUB_USERNAME 
         + "/" + REPO_NAME 
-        + "/issues/new?template=remove-info.yml&website=" 
-        + encodeURIComponent(member.user);
+        + "/issues/new?template=remove-info.yml&username=" 
+        + encodeURIComponent(username);
 
     card.innerHTML = `
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
         <a href="${escapeHTML(member.url)}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
+        <button class="btn btn-btc" onclick="processBitcoin('${escapeHTML(member.bitcoin)}')">📋 Open Wallet & Copy BTC</button>
         
-        <!-- UPDATED UNIFIED BITCOIN BUTTON -->
-        <button class="btn btn-btc" onclick="processBitcoin('${escapeHTML(member.bitcoin)}')">Open Wallet & Paste BTC Address</button>
-        
-        <!-- REMOVAL BUTTON -->
+        <!-- UPDATED REMOVAL BUTTON USING JUST USERNAME -->
         <a href="${removalUrl}" target="_blank" rel="noopener" class="btn" style="background-color: #cb2431; color: white; margin-top: 10px; display: block; text-align: center;">⚠️ Remove My Entry</a>
     `;
     directoryContainer.appendChild(card);
