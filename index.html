@@ -134,13 +134,13 @@ window.APP_CONFIG = Object.freeze({
 </div>
 
 <script>
+const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
+
 document.getElementById("prefillForm").addEventListener("submit", function (e) {
     e.preventDefault();
 
     const username = document.getElementById("web_username").value.trim();
     const btc = document.getElementById("web_btc").value.trim();
-
-    const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
 
     const url =
         "https://github.com/" +
@@ -163,28 +163,26 @@ document.getElementById("prefillForm").addEventListener("submit", function (e) {
         <div class="status-msg" id="status">Loading members database...</div>
     </div>
 
-    <script>
-        // --- CONFIGURATION ---
-const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
-
-        // Pull the stored array database from data.json to populate the directory below
-        fetch('./data.json', { cache: "no-store" })
-    .then(response => {
-        if (!response.ok) throw new Error('HTTP ' + response.status);
+<script>
+fetch('./data.json', { cache: "no-store" })
+    .then(async (response) => {
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
         return response.json();
     })
     .then(members => {
-        const directoryContainer = document.getElementById('directory');
-        directoryContainer.innerHTML = '';
+        const container = document.getElementById('directory');
+        container.innerHTML = '';
 
         if (!Array.isArray(members) || members.length === 0) {
-            directoryContainer.innerHTML = '<div class="status-msg">No approved members yet!</div>';
+            container.innerHTML = '<div class="status-msg">No approved members yet!</div>';
             return;
         }
 
         members.forEach(member => {
-            const username = (member.username || "").trim();
-            if (!username) return;
+            if (!member.username) return;
+            const username = member.username.trim();
 
             const freecycleUrl =
                 "https://www.freecycle.org/member/" +
@@ -227,18 +225,21 @@ const { GITHUB_USERNAME, REPO_NAME } = window.APP_CONFIG;
             document.getElementById('directory').appendChild(card);
         });
     })
-    .catch(error => {
-        console.error("DATA LOAD FAILED:", error);
+    .catch(err => {
+        console.error("DATA LOAD FAILED:", err);
         document.getElementById('status').innerText =
-            'Failed to load member records (check data.json deploy)';
+            "Failed to load member records (check data.json path)";
     });
+</script>
 <script>
 function processBitcoin(address) {
-    if (!address || typeof address !== "string") return;
+    if (!address) return;
 
-    navigator.clipboard?.writeText(address).catch(console.error);
+    navigator.clipboard.writeText(address).catch(console.error);
 
-    window.location.href = "bitcoin:" + address;
+    setTimeout(() => {
+        window.location.href = "bitcoin:" + address;
+    }, 50);
 }
 
 function escapeHTML(str) {
