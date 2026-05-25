@@ -2,17 +2,12 @@ const fs = require("fs");
 
 const FILE = "data.json";
 
+/* ---------------- INPUTS ---------------- */
 const addUsername = (process.env.ADD_USERNAME || "").trim();
 const btc = (process.env.BTC || "").trim();
-function extractRemoveUsername(body) {
-  const match = body.match(/(?:^|\n)\s*([a-zA-Z0-9_-]{3,20})\s*(?:\n|$)/);
-  return match ? match[1] : "";
-}
+const removeUsername = (process.env.REMOVE_USERNAME || "").trim();
 
-const removeUsername = extractRemoveUsername(process.env.REMOVE_USERNAME || "");
-
-let data = [];
-
+/* ---------------- NORMALIZER ---------------- */
 const norm = (s) =>
   (s || "")
     .replace(/\u200B/g, "")
@@ -20,15 +15,30 @@ const norm = (s) =>
     .trim()
     .toLowerCase();
 
+/* ---------------- LOAD + AUTO-REPAIR ---------------- */
+let data = [];
+
 if (fs.existsSync(FILE)) {
   try {
-    data = JSON.parse(fs.readFileSync(FILE, "utf8"));
-    if (!Array.isArray(data)) data = [];
+    const raw = JSON.parse(fs.readFileSync(FILE, "utf8"));
+
+    data = Array.isArray(raw)
+      ? raw
+          .filter(Boolean)
+          .map(e => ({
+            username: e?.username ? String(e.username) : "",
+            bitcoin: e?.bitcoin ? String(e.bitcoin) : ""
+          }))
+      : [];
   } catch {
     data = [];
   }
 }
 
+/* ---------------- HARD GUARD (remove broken rows) ---------------- */
+data = data.filter(e => e.username && e.username.trim() !== "");
+
+/* ---------------- STATE ---------------- */
 let changed = false;
 
 /* ---------------- ADD / UPDATE ---------------- */
@@ -38,18 +48,21 @@ if (addUsername && btc) {
   const idx = data.findIndex(e => norm(e.username) === key);
 
   if (idx >= 0) {
-    data[idx].bitcoin = btc;
     data[idx].username = addUsername;
-    changed = true;
+    data[idx].bitcoin = btc;
     console.log("UPDATED:", addUsername);
-  } else {
-    data.push({ username: addUsername, bitcoin: btc });
     changed = true;
+  } else {
+    data.push({
+      username: addUsername,
+      bitcoin: btc
+    });
     console.log("ADDED:", addUsername);
+    changed = true;
   }
 }
 
-/* ---------------- REMOVE (NOW RELIABLE) ---------------- */
+/* ---------------- REMOVE ---------------- */
 if (removeUsername) {
   const key = norm(removeUsername);
 
@@ -68,10 +81,14 @@ if (removeUsername) {
   const removed = before !== data.length;
 
   console.log("REMOVED:", removed);
+  changed = removed || changed;
 }
 
-/* ---------------- WRITE ---------------- */
+/* ---------------- FINAL WRITE ---------------- */
 fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 
 console.log("FINAL SIZE:", data.length);
 console.log("CHANGED:", changed);
+
+/* ---------------- CHANGE FLAG ---------------- */
+fs.writeFileSync(".changed", changed ? "true" : "false");
