@@ -10,7 +10,7 @@ on:
 
 jobs:
   update-data:
-    # Only run when "approve" label is added
+    # Only run when approve label is added
     if: github.event.label.name == 'approve'
 
     runs-on: ubuntu-latest
@@ -18,7 +18,7 @@ jobs:
     steps:
 
       # ---------------- CHECKOUT ----------------
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       # ---------------- NODE 24 ----------------
@@ -28,7 +28,7 @@ jobs:
           node-version: 24.x
 
       # ---------------- DETECT MODE ----------------
-      - name: Detect mode (add/remove)
+      - name: Detect mode
         id: mode
         run: |
           BODY="${{ github.event.issue.body }}"
@@ -39,33 +39,32 @@ jobs:
             echo "mode=add" >> $GITHUB_OUTPUT
           fi
 
-          echo "Detected mode: $(cat $GITHUB_OUTPUT)"
+          echo "MODE: $(cat $GITHUB_OUTPUT)"
 
-      # ---------------- PARSE ISSUE ----------------
-      - name: Parse issue body
+      # ---------------- PARSE ISSUE (OPTION A FIX) ----------------
+      - name: Parse submission issue
         id: parse
-        run: |
-          BODY="${{ github.event.issue.body }}"
+        uses: stefanbuck/github-issue-parser@v3
+        with:
+          template-path: .github/ISSUE_TEMPLATE/submit-info.yml
 
-          USERNAME=$(echo "$BODY" | grep -i "username" | head -n 1 | cut -d':' -f2- | xargs || true)
-          BTC=$(echo "$BODY" | grep -i "bitcoin" | head -n 1 | cut -d':' -f2- | xargs || true)
-
-          echo "username=$USERNAME" >> $GITHUB_OUTPUT
-          echo "bitcoin=$BTC" >> $GITHUB_OUTPUT
-
-          echo "Parsed username: $USERNAME"
-          echo "Parsed bitcoin: $BTC"
+      # ---------------- PARSE REMOVE ISSUE (OPTION A FIX) ----------------
+      - name: Parse removal issue
+        id: parse_remove
+        uses: stefanbuck/github-issue-parser@v3
+        with:
+          template-path: .github/ISSUE_TEMPLATE/remove-info.yml
 
       # ---------------- PROCESS DIRECTORY ----------------
       - name: Process directory changes
         run: node scripts/process-directory.js
         env:
           MODE: ${{ steps.mode.outputs.mode }}
-          USERNAME: ${{ steps.parse.outputs.username }}
+          USERNAME: ${{ steps.parse.outputs.username || steps.parse_remove.outputs.username }}
           BTC: ${{ steps.parse.outputs.bitcoin }}
 
       # ---------------- DEBUG OUTPUT ----------------
-      - name: Debug output
+      - name: Debug data output
         run: |
           echo "==== data.json ===="
           cat data.json || echo "missing data.json"
@@ -107,7 +106,8 @@ jobs:
           script: |
             const issue_number = context.payload.issue.number;
 
-            const username = `${{ steps.parse.outputs.username }}`;
+            const username =
+              `${{ steps.parse.outputs.username || steps.parse_remove.outputs.username }}`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
