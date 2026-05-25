@@ -161,14 +161,26 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
                 }
 
                 members.forEach(member => {
-                    const card = document.createElement('div');
-                    card.className = 'member-card';
-                    card.innerHTML = `
-                        <a href="${escapeHTML(member.url)}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
-                        <button class="btn btn-btc" onclick="copyBTC('${escapeHTML(member.bitcoin)}')">📋 Copy BTC</button>
-                    `;
-                    directoryContainer.appendChild(card);
-                });
+    const card = document.createElement('div');
+    card.className = 'member-card';
+    
+    // Build the clean removal link format using your string concatenation logic
+    const removalUrl = "https://github.com" 
+        + "/" + GITHUB_USERNAME 
+        + "/" + REPO_NAME 
+        + "/issues/new?template=remove-info.yml&website=" 
+        + encodeURIComponent(member.url);
+
+    card.innerHTML = `
+        <p style="margin: 0 0 15px 0; font-weight: bold; color: #24292e;">Verified Directory Entry</p>
+        <a href="${escapeHTML(member.url)}" target="_blank" rel="noopener" class="btn btn-freecycle">Freecycle Profile</a>
+        <button class="btn btn-btc" onclick="copyBTC('${escapeHTML(member.bitcoin)}')">📋 Copy BTC</button>
+        
+        <!-- NEW REMOVAL BUTTON -->
+        <a href="${removalUrl}" target="_blank" rel="noopener" class="btn" style="background-color: #cb2431; color: white; margin-top: 10px; display: block; text-align: center;">⚠️ Remove My Entry</a>
+    `;
+    directoryContainer.appendChild(card);
+});
             })
             .catch(error => {
                 console.error(error);
