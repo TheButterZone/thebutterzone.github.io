@@ -1,0 +1,26 @@
+name: "Remove Your Information"
+description: "Request the removal of your profile from our static website directory."
+title: "[Removal Request]: "
+labels: ["pending-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Profile Removal Request
+        An admin will review this request. Once approved, your data will be permanently scrubbed from the live database.
+
+  - type: input
+    id: website
+    attributes:
+      label: "Freecycle Member URL to Remove"
+      description: "This must match the exact URL currently listed on the website directory."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: "Confirmation"
+      options:
+        - label: "I confirm that I am the owner of this profile, my GitHub username is the same used for initial submission, and want it removed."
+          required: true
