@@ -1,13 +1,14 @@
-name: "Remove Your Information"
-description: "Request the removal of your profile from our static website directory using your username."
+name: Remove Your Information
+description: Request removal of your profile from the BTC2Free directory.
 title: "[Removal Request]: BTC2Free"
-labels: ["pending-review"]
+labels: ["pending"]
 
 body:
   - type: input
     id: username
     attributes:
-      label: Freecycle Username to Remove
-      placeholder: "Enter just your username (letters, numbers, + and - symbols allowed)."
+      label: Freecycle Username
+      description: "Enter ONLY your username, not a full URL."
+      placeholder: "your_username"
     validations:
       required: true
