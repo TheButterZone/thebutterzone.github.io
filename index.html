@@ -125,6 +125,24 @@
     </form>
 </div>
 
+    <script>
+document.getElementById("prefillForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const username = document.getElementById("web_username").value.trim();
+    const btc = document.getElementById("web_btc").value.trim();
+
+    if (!username || !btc) return;
+
+    const url =
+      "https://github.com/TheButterZone/thebutterzone.github.io/issues/new?template=submit-info.yml" +
+      "&username=" + encodeURIComponent(username) +
+      "&bitcoin=" + encodeURIComponent(btc);
+
+    window.location.href = url;
+});
+</script>
+
     <hr style="border: 0; border-top: 1px solid #d1d5da; margin: 40px 0;">
 
     <!-- 2. MEMBERS DIRECTORY -->
@@ -155,7 +173,7 @@ document.getElementById('prefillForm').addEventListener('submit', function(e) {
             + "/" + REPO_NAME 
             + "/issues/new?template=submit-info.yml&website=" 
             + encodeURIComponent(fullUrl) 
-            + "&bitcoin_address=" + encodeURIComponent(btc);
+            + "&bitcoin=" + encodeURIComponent(btc);
 
         window.open(githubIssueUrl, '_blank');
 
