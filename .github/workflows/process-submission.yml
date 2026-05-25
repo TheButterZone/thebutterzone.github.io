@@ -39,8 +39,8 @@ jobs:
       - name: Validate Inputs
         run: |
           node -e "
-          const username = '${{ steps.parse_add.outputs.issueparser_username }}';
-          const btc = '${{ steps.parse_add.outputs.issueparser_bitcoin_address }}';
+          const username = process.env.ADD_USERNAME;
+          const btc = process.env.BTC;
       
           const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
           const btcRegex = /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/;
@@ -54,15 +54,20 @@ jobs:
             console.error('Invalid BTC address');
             process.exit(1);
           }
+      
+          console.log('Validation OK');
           "
+        env:
+            ADD_USERNAME: ${{ steps.parse_add.outputs.issueparser_username }}
+            BTC: ${{ steps.parse_add.outputs.issueparser_bitcoin_address }}
 
-                  - name: DEBUG REMOVE INPUT
-          run: |
-            echo "RAW ISSUE BODY:"
-            echo "${{ github.event.issue.body }}"
-        
-            echo "PARSED REMOVE USERNAME:"
-            echo "${{ steps.parse_remove.outputs.issueparser_username }}"
+      - name: DEBUG REMOVE INPUT
+        run: |
+          echo "RAW ISSUE BODY:"
+          echo "${{ github.event.issue.body }}"
+      
+          echo "PARSED REMOVE USERNAME:"
+          echo "${{ steps.parse_remove.outputs.issueparser_username }}"
 
       # ---------------- PROCESS ----------------
       - name: Process Directory Changes
