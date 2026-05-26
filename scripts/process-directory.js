@@ -51,9 +51,24 @@ if (mode === "add" && username && btc) {
   const idx = data.findIndex(e => norm(e.username) === key);
 
   if (idx >= 0) {
-    console.log("UPDATED:", username);
-    data[idx].bitcoin = btc;
-  } else {
+  const owner = norm(data[idx].githubUser);
+  const requester = norm(githubUser);
+
+  if (owner && owner !== requester) {
+    console.log("UNAUTHORIZED UPDATE:", githubUser);
+
+    fs.writeFileSync(
+      ".unauthorized",
+      "true"
+    );
+
+    process.exit(0);
+  }
+
+  console.log("UPDATED:", username);
+
+  data[idx].bitcoin = btc;
+} else {
     console.log("ADDED:", username);
     data.push({
       username,
