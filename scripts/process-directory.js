@@ -6,6 +6,7 @@ const FILE = "data.json";
 const mode = (process.env.MODE || "").trim();
 const username = (process.env.USERNAME || "").trim();
 const btc = (process.env.BTC || "").trim();
+const githubUser = (process.env.GITHUB_USER || "").trim();
 
 /* ---------------- NORMALIZER ---------------- */
 const norm = (s) =>
@@ -25,9 +26,11 @@ if (fs.existsSync(FILE)) {
     data = Array.isArray(raw)
       ? raw
           .filter(Boolean)
-          .map(e => ({
-            username: e?.username ? String(e.username) : "",
-            bitcoin: e?.bitcoin ? String(e.bitcoin) : ""
+         .map(e => ({
+          username: e?.username ? String(e.username) : "",
+          bitcoin: e?.bitcoin ? String(e.bitcoin) : "",
+          githubUser: e?.githubUser ? String(e.githubUser) : ""
+           
           }))
       : [];
   } catch {
@@ -52,7 +55,11 @@ if (mode === "add" && username && btc) {
     data[idx].bitcoin = btc;
   } else {
     console.log("ADDED:", username);
-    data.push({ username, bitcoin: btc });
+    data.push({
+      username,
+      bitcoin: btc,
+      githubUser
+      });
   }
 
   changed = true;
@@ -62,11 +69,29 @@ if (mode === "add" && username && btc) {
 if (mode === "remove" && username) {
   const key = norm(username);
 
-  const before = data.length;
-  data = data.filter(e => norm(e.username) !== key);
+  const idx = data.findIndex(
+    e => norm(e.username) === key
+  );
 
-  if (data.length !== before) {
+  if (idx >= 0) {
+    const owner = norm(data[idx].githubUser);
+    const requester = norm(githubUser);
+
+    if (owner && owner !== requester) {
+      console.log("UNAUTHORIZED REMOVE:", githubUser);
+
+      fs.writeFileSync(
+        ".unauthorized",
+        "true"
+      );
+
+      process.exit(0);
+    }
+
+    data.splice(idx, 1);
+
     console.log("REMOVED:", username);
+
     changed = true;
   }
 }
