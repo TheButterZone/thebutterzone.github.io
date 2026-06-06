@@ -1,0 +1,34 @@
+name: Bootstrap package-lock.json
+
+on:
+  workflow_dispatch:  # manual run only
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies (generate lockfile)
+        run: npm install
+
+      - name: Commit package-lock.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add package-lock.json
+
+          git commit -m "Generate package-lock.json via GitHub Actions" || echo "No changes to commit"
+
+          git push
