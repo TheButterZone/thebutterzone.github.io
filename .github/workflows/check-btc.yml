@@ -5,6 +5,9 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch:
 
+  issue_comment:
+    types: [created]
+
 # -----------------------------
 # GLOBAL LOCK (CRITICAL)
 # -----------------------------
@@ -18,7 +21,15 @@ permissions:
 jobs:
   btc-monitor:
     runs-on: ubuntu-latest
-
+    if: >
+     github.event_name == 'schedule' ||
+     github.event_name == 'workflow_dispatch' ||
+     (
+       github.event_name == 'issue_comment' &&
+       contains(github.event.comment.body, '/run-btc-test') &&
+       github.event.comment.user.login == 'TheButterZone'
+     )
+     
     steps:
       # -----------------------------
       # Checkout repo
@@ -49,7 +60,7 @@ jobs:
         run: node scripts/check-btc.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TEST_MODE: false
+          TEST_MODE: ${{ github.event_name == 'issue_comment' }}
 
       # -----------------------------
       # Commit state update
