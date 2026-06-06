@@ -1,0 +1,77 @@
+name: BTC Incoming Payment Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+  issue_comment:
+    types: [created]
+
+# -----------------------------
+# GLOBAL LOCK (CRITICAL)
+# -----------------------------
+concurrency:
+  group: btc-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  btc-monitor:
+    runs-on: ubuntu-latest
+    if: >
+     github.event_name == 'schedule' ||
+     github.event_name == 'workflow_dispatch' ||
+     (
+       github.event_name == 'issue_comment' &&
+       contains(github.event.comment.body, '/run-btc-test') &&
+       github.event.comment.user.login == 'TheButterZone'
+     )
+     
+    steps:
+      # -----------------------------
+      # Checkout repo
+      # -----------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # -----------------------------
+      # Setup Node
+      # -----------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      # -----------------------------
+      # Install dependencies
+      # -----------------------------
+      - name: Install dependencies
+        run: npm ci
+
+      # -----------------------------
+      # Run BTC monitor
+      # -----------------------------
+      - name: Run BTC monitor
+        run: node scripts/check-btc.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEST_MODE: ${{ github.event_name == 'issue_comment' }}
+
+      # -----------------------------
+      # Commit state update
+      # -----------------------------
+      - name: Commit state update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .btc-monitor-state.json
+
+          git diff --cached --quiet || git commit -m "Update BTC monitor state"
+
+          git push
