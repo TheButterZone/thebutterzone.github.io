@@ -65,42 +65,44 @@ async function main() {
     // -----------------------------
     // NOTIFICATION LOGIC
     // -----------------------------
-    if (newTxs.length > 0) {
-      const issue = findIssueForUser(issues, githubUser);
 
-      if (issue) {
-        if (!TEST_MODE) {
-          await postComment(
-            issue.number,
-            'A new Bitcoin payment to your registered address has received its first confirmation.'
-          );
-        } else {
-          console.log(
-            `[TEST_MODE] Would post comment to issue #${issue.number} for ${githubUser}`
-          );
-        }
-      } else {
-        console.warn(`No approve-labeled issue found for ${githubUser}`);
-      }
+if (newTxs.length === 0) return; // nothing to do
 
-      const newMax = Math.max(...newTxs.map(t => t.block_time));
+const issue = findIssueForUser(issues, githubUser);
 
-      updatedState[bitcoin] = Math.max(
-        updatedState[bitcoin],
-        newMax
-      );
+if (!issue) {
+  console.warn(`No approve-labeled issue found for ${githubUser}`);
+  return;
+}
 
-      console.log(
-        TEST_MODE
-          ? `[TEST_MODE] Updated state for ${githubUser}`
-          : `Updated state for ${githubUser}`
-      );
-    }
+try {
+  if (!TEST_MODE) {
+    await postComment(
+      issue.number,
+      'A new Bitcoin payment to your registered address has received its first confirmation.'
+    );
+  } else {
+    console.log(`[TEST_MODE] Would post comment to issue #${issue.number} for ${githubUser}`);
+  }
+} catch (err) {
+  console.error(`[WARN] Failed to post comment to ${githubUser}:`, err);
+}
+
+// Update state immediately
+const newMax = Math.max(...newTxs.map(t => t.block_time));
+updatedState[bitcoin] = Math.max(updatedState[bitcoin], newMax);
+
+fs.mkdirSync(path.dirname(statePath), { recursive: true });
+fs.writeFileSync(statePath, JSON.stringify(updatedState, null, 2));
+
+console.log(
+  TEST_MODE
+    ? `[TEST_MODE] Updated state for ${githubUser}`
+    : `Updated state for ${githubUser}`
+);
   });
 
   await Promise.all(tasks);
-
-  fs.writeFileSync(statePath, JSON.stringify(updatedState, null, 2));
 
   console.log(
     TEST_MODE
