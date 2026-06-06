@@ -1,23 +1,26 @@
 name: Bootstrap package-lock.json
 
 on:
-  workflow_dispatch:  # manual run only
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20.x
 
       - name: Install dependencies (generate lockfile)
         run: npm install
