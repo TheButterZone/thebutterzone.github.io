@@ -1,40 +1,28 @@
-name: BTC Incoming Monitor
+name: BTC Incoming Payment Monitor
 
 on:
   schedule:
-    - cron: "0 * * * *"  # every hour
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  issues: write
+    # Runs every hour
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
-  monitor:
+  check-btc:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: 22
-          cache: npm
+          node-version: '20'
 
-      - run: npm install
+      - name: Install dependencies
+        run: npm install
 
-      - run: node scripts/check-btc.js
+      - name: Run BTC monitor
+        run: node scripts/check-btc.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit updated state
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add .btc-monitor-state.json
-
-          git diff --cached --quiet && exit 0
-
-          git commit -m "Update BTC monitor state"
-          git push
