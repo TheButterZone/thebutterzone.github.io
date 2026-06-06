@@ -1,0 +1,9 @@
+{
+  "name": "thebutterzone-btc-monitor",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "axios": "^1.11.0"
+  }
+}
