@@ -1,7 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { getConfirmedTxs } from '../lib/btcProviders.js';
-import { getUserIssue, postComment } from '../lib/githubUtils.js';
+import {
+  getAllOpenIssues,
+  findIssueForUser,
+  postComment
+} from '../lib/githubUtils.js';
 
 const dataPath = path.resolve('data.json');
 const statePath = path.resolve('.btc-monitor-state.json');
@@ -15,6 +19,11 @@ if (fs.existsSync(statePath)) {
 
 async function main() {
   let updatedState = { ...state };
+
+  // -----------------------------
+  // GitHub API CALLED ONCE
+  // -----------------------------
+  const issues = await getAllOpenIssues();
 
   const tasks = members.map(async (member) => {
     const { bitcoin, githubUser } = member;
@@ -33,19 +42,20 @@ async function main() {
     const newTxs = txs.filter(tx => tx.block_time > lastSeen);
 
     if (newTxs.length > 0) {
-      const issue = await getUserIssue(githubUser);
+      const issue =
+        findIssueForUser(issues, githubUser);
 
       if (issue) {
         await postComment(
           issue.number,
           'A new Bitcoin payment to your registered address has received its first confirmation.'
         );
+
         console.log(`Notified ${githubUser}`);
       } else {
-        console.warn(`No open issue found for ${githubUser}`);
+        console.warn(`No issue found for ${githubUser}`);
       }
 
-      // Monotonic update of lastSeen
       updatedState[bitcoin] = Math.max(
         updatedState[bitcoin],
         Math.max(...newTxs.map(t => t.block_time))
