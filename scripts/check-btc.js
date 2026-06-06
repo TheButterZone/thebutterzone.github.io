@@ -21,7 +21,7 @@ async function main() {
 
     const txs = await getConfirmedTxs(bitcoin);
 
-    // First run initialization (no notification)
+    // First-run initialization
     if (!(bitcoin in updatedState)) {
       updatedState[bitcoin] = txs.length
         ? Math.max(...txs.map(t => t.block_time))
@@ -45,7 +45,11 @@ async function main() {
         console.warn(`No open issue found for ${githubUser}`);
       }
 
-      updatedState[bitcoin] = Math.max(...newTxs.map(t => t.block_time));
+      // Monotonic update of lastSeen
+      updatedState[bitcoin] = Math.max(
+        updatedState[bitcoin],
+        Math.max(...newTxs.map(t => t.block_time))
+      );
     }
   });
 
