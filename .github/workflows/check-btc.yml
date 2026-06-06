@@ -2,21 +2,48 @@ name: BTC Incoming Payment Monitor
 
 on:
   schedule:
-    - cron: '0 * * * *'  # hourly
-  workflow_dispatch:
+    - cron: '0 * * * *'   # hourly
+  workflow_dispatch:      # manual trigger
 
 jobs:
-  check-btc:
+  btc-monitor:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      # -----------------------------
+      # Checkout repo
+      # -----------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v3
+      # -----------------------------
+      # Restore cached BTC state
+      # -----------------------------
+      - name: Restore BTC state cache
+        uses: actions/cache@v3
         with:
-          node-version: '20'
+          path: .btc-monitor-state.json
+          key: btc-state-${{ runner.os }}
 
-      - run: npm install
+      # -----------------------------
+      # Setup Node
+      # -----------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-      - run: node scripts/check-btc.js
+      # -----------------------------
+      # Install dependencies
+      # -----------------------------
+      - name: Install dependencies
+        run: npm ci
+
+      # -----------------------------
+      # Run BTC monitor (TEST_MODE optional)
+      # -----------------------------
+      - name: Run BTC monitor
+        run: node scripts/check-btc.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEST_MODE: false   # <-- flip to true for safe simulation
