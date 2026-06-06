@@ -104,6 +104,9 @@ console.log(
 
   await Promise.all(tasks);
 
+  fs.mkdirSync(path.dirname(statePath), { recursive: true });
+  fs.writeFileSync(statePath, JSON.stringify(updatedState, null, 2));
+
   console.log(
     TEST_MODE
       ? '[TEST_MODE] Run complete (no real GitHub writes executed)'
