@@ -2,8 +2,18 @@ name: BTC Incoming Payment Monitor
 
 on:
   schedule:
-    - cron: '0 * * * *'   # hourly
-  workflow_dispatch:      # manual trigger
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+# -----------------------------
+# GLOBAL LOCK (CRITICAL)
+# -----------------------------
+concurrency:
+  group: btc-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   btc-monitor:
@@ -15,15 +25,8 @@ jobs:
       # -----------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      # -----------------------------
-      # Restore cached BTC state
-      # -----------------------------
-      - name: Restore BTC state cache
-        uses: actions/cache@v3
         with:
-          path: .btc-monitor-state.json
-          key: btc-state-${{ runner.os }}
+          fetch-depth: 0
 
       # -----------------------------
       # Setup Node
@@ -40,10 +43,24 @@ jobs:
         run: npm ci
 
       # -----------------------------
-      # Run BTC monitor (TEST_MODE optional)
+      # Run BTC monitor
       # -----------------------------
       - name: Run BTC monitor
         run: node scripts/check-btc.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TEST_MODE: false   # <-- flip to true for safe simulation
+          TEST_MODE: false
+
+      # -----------------------------
+      # Commit state update
+      # -----------------------------
+      - name: Commit state update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .btc-monitor-state.json
+
+          git diff --cached --quiet || git commit -m "Update BTC monitor state"
+
+          git push
