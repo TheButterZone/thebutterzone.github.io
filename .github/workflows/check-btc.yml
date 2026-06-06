@@ -46,3 +46,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TEST_MODE: ${{ github.event_name == 'issue_comment' }}
+          TEST_ISSUE_NUMBER: ${{ github.event.issue.number || '' }}
