@@ -2,7 +2,7 @@ name: BTC Monitor
 
 on:
   schedule:
-    - cron: "0 * * * *" # hourly
+    - cron: "21 * * * *" # hourly
   workflow_dispatch:
   issue_comment:
     types: [created]
