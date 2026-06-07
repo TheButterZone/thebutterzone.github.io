@@ -3,6 +3,10 @@ import path from 'path';
 import { getConfirmedTxs } from '../lib/btcProviders.js';
 import { getAllIssues, findIssueForUser, postComment } from '../lib/githubUtils.js';
 
+console.log(
+  `[START] ${new Date().toISOString()} TEST_MODE=${process.env.TEST_MODE === 'true'}`
+);
+
 const TEST_MODE = process.env.TEST_MODE === 'true';
 
 const dataPath = path.resolve('data.json');
