@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # ensures all action JS runs on Node 24
 
 jobs:
   monitor:
@@ -37,10 +37,11 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v5
         with:
-          node-version: 20.x
+          node-version: '24'
+          check-latest: true
 
       - name: Heartbeat log
         run: echo "[HEARTBEAT] $(date -u)"
