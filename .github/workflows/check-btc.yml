@@ -43,9 +43,6 @@ jobs:
           node-version: '24'
           check-latest: true
 
-      - name: Heartbeat log
-        run: echo "[HEARTBEAT] $(date -u)"
-
       - name: Install dependencies
         run: npm ci
 
