@@ -36,7 +36,7 @@ jobs:
           EOF
           )
 
-          USERNAME=$(echo "$BODY" | awk '/### Freecycle Username/{getline; getline; print}' | xargs)
+          USERNAME=$(echo "$BODY" | awk '/### Freecycle.org Username/{getline; getline; print}' | xargs)
 
           BTC=$(echo "$BODY" | awk '/### Bitcoin Address/{getline; getline; print}' | xargs)
 
