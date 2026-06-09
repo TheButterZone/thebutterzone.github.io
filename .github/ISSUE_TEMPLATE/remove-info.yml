@@ -7,7 +7,7 @@ body:
   - type: input
     id: username
     attributes:
-      label: Freecycle Username
+      label: Freecycle.org Username
       description: "Enter ONLY your username, not a full URL."
       placeholder: "your_username"
     validations:
