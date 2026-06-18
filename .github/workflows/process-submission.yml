@@ -58,7 +58,7 @@ jobs:
 
       # ---------------- NORMALIZED PROCESSING ----------------
       - name: Process Directory Changes
-        run: node scripts/process-directory.js
+        run: node scripts/process-directory.cjs
         env:
           MODE: ${{ steps.mode.outputs.mode }}
           USERNAME: ${{ steps.parse.outputs.username }}
