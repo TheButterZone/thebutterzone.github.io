@@ -19,11 +19,11 @@ jobs:
     steps:
       # ---------------- CHECKOUT ----------------
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # ---------------- NODE 24 ONLY ----------------
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
 
@@ -37,7 +37,6 @@ jobs:
           )
 
           USERNAME=$(echo "$BODY" | awk '/### Freecycle.org Username/{getline; getline; print}' | xargs)
-
           BTC=$(echo "$BODY" | awk '/### Bitcoin Address/{getline; getline; print}' | xargs)
 
           echo "USERNAME=$USERNAME"
@@ -68,23 +67,22 @@ jobs:
       # ---------------- UNAUTHORIZED REMOVE ----------------
       - name: Reject Unauthorized Removal
         if: hashFiles('.unauthorized') != ''
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
-            const issue_number = context.payload.issue.number;
+            const issue_number = context.issue.number;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number,
-              body:
-                "❌ Removal denied.\n\nOnly the original GitHub submitter may remove this entry."
+              issue_number: issue_number,
+              body: "❌ Removal denied.\n\nOnly the original GitHub submitter may remove this entry."
             });
 
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number,
+              issue_number: issue_number,
               state: "closed"
             });
 
@@ -103,7 +101,7 @@ jobs:
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@://github.com"
 
           git add data.json .changed || true
 
@@ -118,21 +116,21 @@ jobs:
       # ---------------- COMMENT + CLOSE ----------------
       - name: Close issue
         if: success()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
-            const issue_number = context.payload.issue.number;
+            const issue_number = context.issue.number;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number,
+              issue_number: issue_number,
               body: "✅ Processed successfully and updated directory."
             });
 
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number,
+              issue_number: issue_number,
               state: "closed"
             });
