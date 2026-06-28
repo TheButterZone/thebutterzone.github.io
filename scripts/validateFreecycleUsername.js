@@ -66,21 +66,16 @@ const labels = issue.labels.map(l => l.name);
 const wasInvalid = labels.includes("invalid-username");
 
 // -----------------------------
-// STATE HASH DEBOUNCE
+// USERNAME-ONLY STATE HASH (IMPORTANT FIX)
 // -----------------------------
-const stateString = JSON.stringify({
-  username,
-  bitcoin: body.includes("### Bitcoin Address")
-    ? "present"
-    : "missing",
-});
+const normalizedUsername = username.trim().toLowerCase();
 
 const stateHash = crypto
   .createHash("sha256")
-  .update(stateString)
+  .update(normalizedUsername)
   .digest("hex");
 
-// Load previous hash from comments
+// Load previous hash
 const { data: comments } = await octokit.rest.issues.listComments({
   owner,
   repo,
@@ -96,11 +91,11 @@ const lastHash = lastHashComment
   : null;
 
 if (lastHash === stateHash) {
-  console.log("State unchanged (hash match). Skipping validation.");
+  console.log("Username unchanged (hash match). Skipping validation.");
   process.exit(0);
 }
 
-// Store new hash marker
+// Store new hash marker (overwrite-style, but append-safe)
 await octokit.rest.issues.createComment({
   owner,
   repo,
