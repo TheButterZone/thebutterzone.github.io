@@ -1,0 +1,22 @@
+name: Validate Freecycle Username
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+
+permissions:
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const validate = require('./scripts/validateFreecycleUsername');
+
+            await validate({ github, context });
