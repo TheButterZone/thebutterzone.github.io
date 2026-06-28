@@ -14,9 +14,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/github-script@v7
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
-          script: |
-            const validate = require('./scripts/validateFreecycleUsername');
+          persist-credentials: true
+          fetch-depth: 0
 
-            await validate({ github, context });
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          check-latest: true
+
+      - name: Run validation script
+        run: node scripts/validateFreecycleUsername.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
