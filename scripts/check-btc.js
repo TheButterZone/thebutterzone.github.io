@@ -7,32 +7,84 @@ console.log(`[START] ${new Date().toISOString()}`);
 
 const dataPath = path.resolve('data.json');
 const statePath = path.resolve('.btc-monitor-state.json');
+const queuePath = path.resolve('.btc-failed-queue.json');
 
 const members = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
 
+// -----------------------------
+// LOAD STATE
+// -----------------------------
 let state = {};
 if (fs.existsSync(statePath)) {
   state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
 }
 
+// -----------------------------
+// LOAD FAILURE QUEUE
+// -----------------------------
+let queue = [];
+if (fs.existsSync(queuePath)) {
+  queue = JSON.parse(fs.readFileSync(queuePath, 'utf-8'));
+}
+
+// -----------------------------
+// RETRY HELPER WITH BACKOFF
+// -----------------------------
+async function postCommentWithRetry(issueNumber, body, retries = 3) {
+  let lastErr;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      await postComment(issueNumber, body);
+      return true;
+    } catch (err) {
+      lastErr = err;
+
+      const wait = 1000 * Math.pow(2, i);
+      console.warn(`Retry ${i + 1}/${retries} failed. Waiting ${wait}ms...`);
+
+      await new Promise(res => setTimeout(res, wait));
+    }
+  }
+
+  throw lastErr;
+}
+
 async function main() {
   let updatedState = { ...state };
+  let updatedQueue = [...queue];
   let hasChanges = false;
 
-  // GitHub issues fetched ONCE per run (cached)
   const issues = await getAllIssues();
 
+  // -----------------------------
+  // PROCESS FAILED QUEUE FIRST
+  // -----------------------------
+  const stillFailed = [];
+
+  for (const item of queue) {
+    const { issueNumber, message } = item;
+
+    try {
+      await postCommentWithRetry(issueNumber, message);
+      hasChanges = true;
+      console.log(`Retried queued notification for issue #${issueNumber}`);
+    } catch (err) {
+      console.error(`Still failing issue #${issueNumber}`, err);
+      stillFailed.push(item);
+    }
+  }
+
+  updatedQueue = stillFailed;
+
+  // -----------------------------
+  // PROCESS MEMBERS
+  // -----------------------------
   const tasks = members.map(async (member) => {
     const { bitcoin, githubUser } = member;
 
-    // -----------------------------
-    // BTC TX FETCH
-    // -----------------------------
     const txs = await getConfirmedTxs(bitcoin);
 
-    // -----------------------------
-    // FIRST RUN INITIALIZATION
-    // -----------------------------
     if (!(bitcoin in updatedState)) {
       updatedState[bitcoin] = txs.length
         ? Math.max(...txs.map(t => t.block_time))
@@ -46,10 +98,7 @@ async function main() {
     const lastSeen = updatedState[bitcoin];
     const newTxs = txs.filter(tx => tx.block_time > lastSeen);
 
-    // -----------------------------
-    // NOTIFICATION LOGIC
-    // -----------------------------
-    if (newTxs.length === 0) return; // nothing to do
+    if (newTxs.length === 0) return;
 
     const issue = findIssueForUser(issues, githubUser);
 
@@ -58,32 +107,51 @@ async function main() {
       return;
     }
 
+    const message =
+      "A new Bitcoin payment to your registered address has received its first confirmation.";
+
     try {
-      await postComment(
-        issue.number,
-        'A new Bitcoin payment to your registered address has received its first confirmation.'
-      );
+      await postCommentWithRetry(issue.number, message);
+
+      const newMax = Math.max(...newTxs.map(t => t.block_time));
+      updatedState[bitcoin] = Math.max(updatedState[bitcoin], newMax);
+      hasChanges = true;
+
+      console.log(`Updated state for ${githubUser}`);
     } catch (err) {
-      console.error(`[WARN] Failed to post comment to ${githubUser}:`, err);
+      console.error(`[WARN] Failed permanently for ${githubUser}`, err);
+
+      // -----------------------------
+      // PUSH TO FAILURE QUEUE
+      // -----------------------------
+      updatedQueue.push({
+        issueNumber: issue.number,
+        message,
+        timestamp: Date.now()
+      });
     }
-
-    // Update memory state
-    const newMax = Math.max(...newTxs.map(t => t.block_time));
-    updatedState[bitcoin] = Math.max(updatedState[bitcoin], newMax);
-    hasChanges = true;
-
-    console.log(`Updated state for ${githubUser}`);
   });
 
   await Promise.all(tasks);
 
-  // Only write to disk if state properties changed
+  // -----------------------------
+  // SAVE STATE
+  // -----------------------------
   if (hasChanges) {
     fs.mkdirSync(path.dirname(statePath), { recursive: true });
     fs.writeFileSync(statePath, JSON.stringify(updatedState, null, 2));
     console.log('State file updated on disk.');
-  } else {
-    console.log('No state updates occurred. Skipping file write.');
+  }
+
+  // -----------------------------
+  // SAVE FAILURE QUEUE
+  // -----------------------------
+  if (updatedQueue.length > 0) {
+    fs.writeFileSync(queuePath, JSON.stringify(updatedQueue, null, 2));
+    console.log(`Saved ${updatedQueue.length} queued failures.`);
+  } else if (queue.length > 0) {
+    fs.writeFileSync(queuePath, JSON.stringify([], null, 2));
+    console.log('Cleared failure queue.');
   }
 
   console.log('Run complete');
