@@ -62,7 +62,7 @@ async function main() {
   // -----------------------------
   const stillFailed = [];
 
-  for (const item of queue) {
+  for (const item of updatedQueue) {
     const { issueNumber, message } = item;
 
     try {
@@ -85,18 +85,32 @@ async function main() {
 
     const txs = await getConfirmedTxs(bitcoin);
 
+    // initialize state safely
     if (!(bitcoin in updatedState)) {
-      updatedState[bitcoin] = txs.length
+      const maxTime = txs.length
         ? Math.max(...txs.map(t => t.block_time))
         : 0;
 
+      updatedState[bitcoin] = maxTime;
       hasChanges = true;
+
       console.log(`Initialized state for ${githubUser}`);
       return;
     }
 
     const lastSeen = updatedState[bitcoin];
-    const newTxs = txs.filter(tx => tx.block_time > lastSeen);
+
+    // -----------------------------
+    // HARDENED FILTERING (NO TXIDS VERSION)
+    // -----------------------------
+    const now = Math.floor(Date.now() / 1000);
+    const WINDOW_SECONDS = 300; // 5 min safety window
+
+    const newTxs = txs
+      .filter(tx => tx.incoming === true)
+      .filter(tx => tx.block_time > lastSeen)
+      .filter(tx => tx.block_time <= now + 60) // prevents weird future timestamps
+      .filter(tx => tx.block_time >= lastSeen - WINDOW_SECONDS); // prevents API replay edge cases
 
     if (newTxs.length === 0) return;
 
@@ -113,17 +127,23 @@ async function main() {
     try {
       await postCommentWithRetry(issue.number, message);
 
-      const newMax = Math.max(...newTxs.map(t => t.block_time));
-      updatedState[bitcoin] = Math.max(updatedState[bitcoin], newMax);
+      // -----------------------------
+      // TIMESTAMP CURSOR UPDATE (SAFE MODE)
+      // -----------------------------
+      const newMax = newTxs.reduce(
+        (m, t) => Math.max(m, t.block_time),
+        lastSeen
+      );
+
+      // +1 second prevents same-second reprocessing loops
+      updatedState[bitcoin] = newMax + 1;
+
       hasChanges = true;
 
       console.log(`Updated state for ${githubUser}`);
     } catch (err) {
       console.error(`[WARN] Failed permanently for ${githubUser}`, err);
 
-      // -----------------------------
-      // PUSH TO FAILURE QUEUE
-      // -----------------------------
       updatedQueue.push({
         issueNumber: issue.number,
         message,
