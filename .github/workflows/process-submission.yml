@@ -3,6 +3,8 @@ name: Process Submission
 permissions:
   contents: write
   issues: write
+  pages: write
+  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -134,3 +136,16 @@ jobs:
               issue_number: issue_number,
               state: "closed"
             });
+
+      # ---------------- DEPLOY TO GITHUB PAGES ----------------
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: '.' 
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        
