@@ -92,7 +92,7 @@ jobs:
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@://github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data.json .changed || true
           if git diff --cached --quiet; then
             echo "No changes"
@@ -121,7 +121,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue_number,
-              body: `⚠️ **Workflow Error:** Processing your directory submission or generating the web files failed.\n\nThe issue remains open. You can check the detailed logs [here](https://github.com{context.repo.owner}/${context.repo.repo}/actions/runs/${run_id}).`
+              body: `⚠️ **Workflow Error:** Processing your directory submission or generating the web files failed.\n\nThe issue remains open.\n\nWorkflow run ID: ${run_id}`
             });
 
   # ---------------- JOB 2: DEPLOY & CLOSE ISSUE ----------------
@@ -164,5 +164,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue_number,
-              body: `⚠️ **Deployment Error:** Your data was updated in the repository, but publishing it live to GitHub Pages failed.\n\nThe issue remains open. Check the live server deployment status [here](https://github.com{context.repo.owner}/${context.repo.repo}/actions/runs/${run_id}).`
+              body: `⚠️ **Deployment Error:** Your data was updated in the repository, but publishing it live to GitHub Pages failed.\n\nThe issue remains open.\n\nWorkflow run ID: ${run_id}`
             });
