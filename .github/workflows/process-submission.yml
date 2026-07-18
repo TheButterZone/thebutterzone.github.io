@@ -14,22 +14,21 @@ on:
     types: [labeled]
 
 jobs:
+  # ---------------- JOB 1: PROCESS & BUILD ----------------
   process:
     if: github.event.label.name == 'approve'
     runs-on: ubuntu-latest
-
+    outputs:
+      issue_number: ${{ github.event.issue.number }}
     steps:
-      # ---------------- CHECKOUT ----------------
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      # ---------------- NODE 24 ONLY ----------------
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
 
-      # ---------------- PARSE ISSUE BODY ----------------
       - name: Parse Issue Body
         id: parse
         run: |
@@ -37,7 +36,6 @@ jobs:
           ${{ github.event.issue.body }}
           EOF
           )
-
           USERNAME=$(echo "$BODY" | awk '/### Freecycle.org Username/{getline; getline; print}' | xargs)
           BTC=$(echo "$BODY" | awk '/### Bitcoin Address/{getline; getline; print}' | xargs)
 
@@ -47,7 +45,6 @@ jobs:
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
           echo "bitcoin=$BTC" >> $GITHUB_OUTPUT
 
-      # ---------------- DETERMINE MODE ----------------
       - name: Detect mode
         id: mode
         run: |
@@ -57,7 +54,6 @@ jobs:
             echo "mode=remove" >> $GITHUB_OUTPUT
           fi
 
-      # ---------------- NORMALIZED PROCESSING ----------------
       - name: Process Directory Changes
         run: node scripts/process-directory.cjs
         env:
@@ -66,78 +62,45 @@ jobs:
           BTC: ${{ steps.parse.outputs.bitcoin }}
           GITHUB_USER: ${{ github.event.issue.user.login }}
 
-      # ---------------- UNAUTHORIZED REMOVE ----------------
       - name: Reject Unauthorized Removal
         if: hashFiles('.unauthorized') != ''
         uses: actions/github-script@v8
         with:
           script: |
             const issue_number = context.issue.number;
-
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue_number,
               body: "❌ Removal denied.\n\nOnly the original GitHub submitter may remove this entry."
             });
-
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue_number,
               state: "closed"
             });
-
             core.setFailed("Unauthorized removal attempt.");
 
-      # ---------------- DEBUG ----------------
       - name: Debug output
         run: |
           echo "==== data.json ===="
           cat data.json || true
-
           echo "==== .changed ===="
           cat .changed || true
 
-      # ---------------- COMMIT ----------------
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@://github.com"
-
           git add data.json .changed || true
-
           if git diff --cached --quiet; then
             echo "No changes"
             exit 0
           fi
-
           git commit -m "Update directory"
           git push
 
-      # ---------------- COMMENT + CLOSE ----------------
-      - name: Close issue
-        if: success()
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const issue_number = context.issue.number;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue_number,
-              body: "✅ Processed successfully and updated directory."
-            });
-
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue_number,
-              state: "closed"
-            });
-
-      # ---------------- DEPLOY TO GITHUB PAGES ----------------
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -146,6 +109,60 @@ jobs:
         with:
           path: '.' 
 
+      # ---------------- FAILURE HANDLER FOR JOB 1 ----------------
+      - name: Handle Processing Failure
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const issue_number = context.issue.number;
+            const run_id = context.runId;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: `⚠️ **Workflow Error:** Processing your directory submission or generating the web files failed.\n\nThe issue remains open. You can check the detailed logs [here](https://github.com{context.repo.owner}/${context.repo.repo}/actions/runs/${run_id}).`
+            });
+
+  # ---------------- JOB 2: DEPLOY & CLOSE ISSUE ----------------
+  deploy:
+    needs: process
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Comment + Close issue
+        if: success()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const issue_number = ${{ needs.process.outputs.issue_number }};
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: "✅ Processed successfully and updated directory."
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              state: "closed"
+            });
+
+      # ---------------- FAILURE HANDLER FOR JOB 2 ----------------
+      - name: Handle Deployment Failure
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const issue_number = ${{ needs.process.outputs.issue_number }};
+            const run_id = context.runId;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: `⚠️ **Deployment Error:** Your data was updated in the repository, but publishing it live to GitHub Pages failed.\n\nThe issue remains open. Check the live server deployment status [here](https://github.com{context.repo.owner}/${context.repo.repo}/actions/runs/${run_id}).`
+            });
