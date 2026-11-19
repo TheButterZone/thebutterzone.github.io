@@ -1,2 +1,7 @@
 # thebutterzone.github.io
 
+Migrating #BTC2Free to Nostr:
+
+https://agora.spot/naddr1qvzqqqyx7cpzqtshhpkkjtyhnw6m0skah8msuqh8dw7rtzh6jkkxsy6sg7a7zrszqqyxyarrxfn8yet9w7nwgd
+or http://edpb37c5faxbzamaxsusel22lur35mtmm4gncr5magh35je2yckdsxid.onion/naddr1qvzqqqyx7cpzqtshhpkkjtyhnw6m0skah8msuqh8dw7rtzh6jkkxsy6sg7a7zrszqqyxyarrxfn8yet9w7nwgd
+(or any other website capable of publishing Kind 33863 events to Nostr relays)
